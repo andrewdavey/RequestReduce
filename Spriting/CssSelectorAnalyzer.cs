@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace Spriting
 {
-    public class CssSelectorAnalyzer : ICssSelectorAnalyzer
+    class CssSelectorAnalyzer : ICssSelectorAnalyzer
     {
         private static readonly RegexCache Regex = new RegexCache();
 

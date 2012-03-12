@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Spriting
 {
-    public static class Hasher
+    static class Hasher
     {
         [ThreadStatic]
         private static MD5CryptoServiceProvider md5;

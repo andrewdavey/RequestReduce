@@ -5,7 +5,7 @@ using System.Web;
 
 namespace Spriting
 {
-    public static class Tracer
+    static class Tracer
     {
         [Conditional("DEBUG")]
         public static void Trace(string messageFormat, params object[] args)

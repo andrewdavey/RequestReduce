@@ -2,7 +2,7 @@
 
 namespace Spriting
 {
-    public class SelectorComparer : IComparer<BackgroundImageClass>
+    class SelectorComparer : IComparer<BackgroundImageClass>
     {
         public int Compare(BackgroundImageClass x, BackgroundImageClass y)
         {

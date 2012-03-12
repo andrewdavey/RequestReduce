@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace Spriting
 {
-    public class SpriteWriter : IDisposable
+    class SpriteWriter : IDisposable
     {
         public Bitmap SpriteImage { get; private set; }
         private readonly Graphics drawingSurface = null;

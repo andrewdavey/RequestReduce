@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 
 namespace Spriting
 {
-    public class SpriteContainer : ISpriteContainer
+    class SpriteContainer : ISpriteContainer
     {
         protected readonly IList<SpritedImage> Images = new List<SpritedImage>();
         private readonly Func<string, byte[]> getImageBytes;
