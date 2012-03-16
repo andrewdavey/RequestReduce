@@ -17,17 +17,19 @@ namespace RequestReduce.Reducer
         private readonly ISpriteManager spriteManager;
         private readonly ICssImageTransformer cssImageTransformer;
         private readonly IRRConfiguration configuration;
+        private readonly IRelativeToAbsoluteUtility relativeToAbsoluteUtility;
         private static readonly RegexCache Regex = new RegexCache();
 
-        public CssReducer(IWebClientWrapper webClientWrapper, IStore store, IMinifier minifier, ISpriteManager spriteManager, ICssImageTransformer cssImageTransformer, IUriBuilder uriBuilder, IRRConfiguration configuration)
+        public CssReducer(IWebClientWrapper webClientWrapper, IStore store, IMinifier minifier, ISpriteManager spriteManager, ICssImageTransformer cssImageTransformer, IUriBuilder uriBuilder, IRRConfiguration configuration, IRelativeToAbsoluteUtility relativeToAbsoluteUtility)
             : base(webClientWrapper, store, minifier, uriBuilder)
         {
             this.cssImageTransformer = cssImageTransformer;
             this.configuration = configuration;
+            this.relativeToAbsoluteUtility = relativeToAbsoluteUtility;
             this.spriteManager = spriteManager;
         }
 
-        protected override string ProcessResource(Guid key, IEnumerable<string> urls)
+        protected override string ProcessResource(Guid key, IEnumerable<string> urls, string host)
         {
             spriteManager.SpritedCssKey = key;
             var mergedCss = new StringBuilder();
@@ -36,7 +38,14 @@ namespace RequestReduce.Reducer
                 mergedCss.Append(ProcessCss(url));
             RRTracer.Trace("Finished merging css");
             spriteManager.Dispose();
-            return SpriteCss(mergedCss.ToString());
+            var cssContent =  SpriteCss(mergedCss.ToString());
+            if(!string.IsNullOrEmpty(host))
+            {
+                RRTracer.Trace("Beginning contenthost replacement in {0}", key);
+                cssContent = MakeRelativeUrlsAbsolute(cssContent, host, true);
+                RRTracer.Trace("finished contenthost replacement in {0}", key);
+            }
+            return cssContent;
         }
 
         protected virtual string ProcessCss(string url)
@@ -48,7 +57,8 @@ namespace RequestReduce.Reducer
             var cssContent = WebClientWrapper.DownloadString<CssResource>(url);
             RRTracer.Trace("Finished Downloading {0}", url);
             RRTracer.Trace("Beginning to absolutize urls in {0}", url);
-            cssContent = MakeRelativeUrlsAbsoluteAndRemoveComments(cssContent, url);
+            cssContent = RemoveComments(cssContent);
+            cssContent = MakeRelativeUrlsAbsolute(cssContent, url, false);
             RRTracer.Trace("finished absolutizing urls in {0}", url);
             RRTracer.Trace("Beginning to expand imports in {0}", url);
             cssContent = ExpandImports(cssContent, url);
@@ -82,9 +92,10 @@ namespace RequestReduce.Reducer
                 var url = match.Groups["url"].Value;
                 if(filter != null && filter.IgnoreTarget(new CssJsFilterContext(null, url, match.ToString())))
                     continue;
-                var absoluteUrl = RelativeToAbsoluteUtility.ToAbsolute(parentUrl, url);
+                var absoluteUrl = relativeToAbsoluteUtility.ToAbsolute(parentUrl, url);
                 var importContent = WebClientWrapper.DownloadString<CssResource>(absoluteUrl);
-                importContent = MakeRelativeUrlsAbsoluteAndRemoveComments(importContent, absoluteUrl);
+                importContent = MakeRelativeUrlsAbsolute(importContent, absoluteUrl, false);
+                importContent = RemoveComments(importContent);
                 importContent = ExpandImports(importContent, absoluteUrl);
                 var media = match.Groups["media"];
                 if (media.Success)
@@ -110,18 +121,22 @@ namespace RequestReduce.Reducer
             return spriteManager.Aggregate(css, (current, spritedImage) => cssImageTransformer.InjectSprite(current, spritedImage));
         }
 
-        private string MakeRelativeUrlsAbsoluteAndRemoveComments(string originalCss, string parentCssUrl)
+        private string MakeRelativeUrlsAbsolute(string originalCss, string parentCssUrl, bool useContentHost)
         {
-            originalCss = Regex.CssCommentPattern.Replace(originalCss, string.Empty);
             var matches = Regex.ImageUrlPattern.Matches(originalCss);
             foreach (Match match in matches)
             {
                 var url = match.Groups["url"].Value.Replace("'", "").Replace("\"", "").Trim();
                 if (url.Length <= 0 || url.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) continue;
-                var newUrl = RelativeToAbsoluteUtility.ToAbsolute(parentCssUrl, url);
+                var newUrl = relativeToAbsoluteUtility.ToAbsolute(parentCssUrl, url, useContentHost);
                 originalCss = originalCss.Replace(match.Value, match.Value.Replace(url, newUrl));
             }
             return originalCss;
+        }
+
+        private string RemoveComments(string originalCss)
+        {
+            return Regex.CssCommentPattern.Replace(originalCss, string.Empty);
         }
     }
 }

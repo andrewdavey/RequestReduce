@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Web;
 using Moq;
 using RequestReduce.Api;
 using RequestReduce.Configuration;
@@ -27,6 +28,7 @@ namespace RequestReduce.Facts.Reducer
                 Mock<ISpriteManager>().Setup(x => x.GetEnumerator()).Returns(new List<SpritedImage>().GetEnumerator());
                 Inject<IUriBuilder>(new UriBuilder(Mock<IRRConfiguration>().Object));
                 Mock<IWebClientWrapper>().Setup(x => x.DownloadString<CssResource>(It.IsAny<string>())).Returns(string.Empty);
+                Inject<IRelativeToAbsoluteUtility>(new RelativeToAbsoluteUtility(Mock<HttpContextBase>().Object, Mock<IRRConfiguration>().Object));
             }
 
         }
@@ -108,7 +110,7 @@ namespace RequestReduce.Facts.Reducer
                 var guid = Guid.NewGuid();
                 var builder = new UriBuilder(testable.Mock<IRRConfiguration>().Object);
 
-                var result = testable.ClassUnderTest.Process(guid, "http://host/css1.css::http://host/css2.css");
+                var result = testable.ClassUnderTest.Process(guid, "http://host/css1.css::http://host/css2.css", string.Empty);
 
                 Assert.Equal(guid, builder.ParseKey(result));
             }
@@ -119,7 +121,7 @@ namespace RequestReduce.Facts.Reducer
                 var testable = new TestableCssReducer();
                 var guid = Guid.NewGuid();
 
-                testable.ClassUnderTest.Process(guid, "http://host/css1.css::http://host/css2.css");
+                testable.ClassUnderTest.Process(guid, "http://host/css1.css::http://host/css2.css", string.Empty);
 
                 testable.Mock<ISpriteManager>().VerifySet(x => x.SpritedCssKey = guid);
             }
@@ -355,6 +357,58 @@ namespace RequestReduce.Facts.Reducer
                 testable.Mock<IMinifier>().Verify(
                     x =>
                     x.Minify<CssResource>(expectedcss), Times.Once());
+            }
+
+            [Fact]
+            public void WillInjectContentHostinUnReturnedImagesThatAreLocalToHost()
+            {
+                var testable = new TestableCssReducer();
+                testable.Mock<IRRConfiguration>().Setup(x => x.ContentHost).Returns("http://contentHost");
+                var css =
+                    @"
+.LocalNavigation .TabOn,.LocalNavigation .TabOn:hover {
+    background: url(""subnav_on_technet.png"") no-repeat;
+}";
+                var expectedcss =
+                    @"
+.LocalNavigation .TabOn,.LocalNavigation .TabOn:hover {
+    background: url(""http://contentHost/style/subnav_on_technet.png"") no-repeat;
+}";
+                testable.Mock<IWebClientWrapper>().Setup(x => x.DownloadString<CssResource>("http://host/style/css2.css")).Returns(css);
+
+                testable.ClassUnderTest.Process(Hasher.Hash("mykey"), "http://host/style/css2.css", "http://host/");
+
+                testable.Mock<IMinifier>().Verify(
+                    x =>
+                    x.Minify<CssResource>(expectedcss), Times.Once());
+            }
+
+            [Fact]
+            public void WillNotInjectContentHostinUnReturnedImagesThatAreNotLocalToHost()
+            {
+                var testable = new TestableCssReducer();
+                var config = new Mock<IRRConfiguration>();
+                config.Setup(x => x.ContentHost).Returns("http://contentHost");
+                testable.Inject(config.Object);
+                RRContainer.Current = new Container(x => x.For<IRRConfiguration>().Use(config.Object));
+                var css =
+                    @"
+.LocalNavigation .TabOn,.LocalNavigation .TabOn:hover {
+    background: url(""subnav_on_technet.png"") no-repeat;
+}";
+                var expectedcss =
+                    @"
+.LocalNavigation .TabOn,.LocalNavigation .TabOn:hover {
+    background: url(""http://hostyosty/style/subnav_on_technet.png"") no-repeat;
+}";
+                testable.Mock<IWebClientWrapper>().Setup(x => x.DownloadString<CssResource>("http://hostyosty/style/css2.css")).Returns(css);
+
+                testable.ClassUnderTest.Process(Hasher.Hash("mykey"), "http://hostyosty/style/css2.css", "http://host/");
+
+                testable.Mock<IMinifier>().Verify(
+                    x =>
+                    x.Minify<CssResource>(expectedcss), Times.Once());
+                RRContainer.Current = null;
             }
 
             [Fact]

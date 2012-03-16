@@ -21,17 +21,19 @@ namespace RequestReduce.Module
         private readonly IReductionRepository reductionRepository;
         private readonly IRRConfiguration config;
         private readonly IUriBuilder uriBuilder;
+        private readonly IRelativeToAbsoluteUtility relativeToAbsoluteUtility;
         private static readonly RegexCache Regex = new RegexCache();
         private readonly IReducingQueue reducingQueue;
         private readonly HttpContextBase context;
 
-        public ResponseTransformer(IReductionRepository reductionRepository, IReducingQueue reducingQueue, HttpContextBase context, IRRConfiguration config, IUriBuilder uriBuilder)
+        public ResponseTransformer(IReductionRepository reductionRepository, IReducingQueue reducingQueue, HttpContextBase context, IRRConfiguration config, IUriBuilder uriBuilder, IRelativeToAbsoluteUtility relativeToAbsoluteUtility)
         {
             this.reductionRepository = reductionRepository;
             this.reducingQueue = reducingQueue;
             this.context = context;
             this.config = config;
             this.uriBuilder = uriBuilder;
+            this.relativeToAbsoluteUtility = relativeToAbsoluteUtility;
         }
 
         public string Transform(string preTransform)
@@ -58,7 +60,7 @@ namespace RequestReduce.Module
                     bool matched = false;
                     if (urlMatch.Success)
                     {
-                        var url = RelativeToAbsoluteUtility.ToAbsolute(config.BaseAddress == null ? context.Request.Url : new Uri(config.BaseAddress), urlMatch.Groups["url"].Value);
+                        var url = relativeToAbsoluteUtility.ToAbsolute(config.BaseAddress == null ? context.Request.Url : new Uri(config.BaseAddress), urlMatch.Groups["url"].Value);
                         if ((resource.TagValidator == null || resource.TagValidator(strMatch, url)) && (RRContainer.Current.GetAllInstances<IFilter>().Where(x => (x is CssFilter && typeof(T) == typeof(CssResource)) || (x is JavascriptFilter && typeof(T) == typeof(JavaScriptResource))).FirstOrDefault(y => y.IgnoreTarget(new CssJsFilterContext(context.Request, url, strMatch))) == null))
                         {
                             matched = true;
@@ -109,7 +111,7 @@ namespace RequestReduce.Module
                 {
                     var firstScript =
                         RRContainer.Current.GetInstance<JavaScriptResource>().ResourceRegex.Match(noCommentTransform);
-                    var firstScriptIndex = firstScript.Success ? preTransform.IndexOf(firstScript.ToString(), System.StringComparison.Ordinal) : -1;
+                    var firstScriptIndex = firstScript.Success ? preTransform.IndexOf(firstScript.ToString(), StringComparison.Ordinal) : -1;
                     var insertionIdx = (firstScript.Success && firstScriptIndex <
                                         preTransform.IndexOf(transformableMatches[0], StringComparison.Ordinal) && resource is CssResource)
                                            ? firstScriptIndex - 1
@@ -130,7 +132,14 @@ namespace RequestReduce.Module
                 }
                 return result;
             }
-            reducingQueue.Enqueue(new QueueItem<T> { Urls = urls.ToString() });
+            var host = string.Empty;
+            if(!string.IsNullOrEmpty(config.ContentHost))
+            {
+                var uri = context.Request.Url;
+                if(uri != null)
+                    host = string.Format("{0}://{1}/", uri.Scheme, uri.Host);
+            }
+            reducingQueue.Enqueue(new QueueItem<T> { Urls = urls.ToString(), Host = host});
             RRTracer.Trace("No reduction found for {0}. Enqueuing.", urls);
             return preTransform;
         }
