@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 11
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spritastic", "Spritastic\Spritastic.csproj", "{137764E9-8C29-486E-A14D-75EA8583EE7B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spritastic.Facts", "Spritastic.Facts\Spritastic.Facts.csproj", "{AFCF34B7-C8DD-488C-B175-5D0B77C16324}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{137764E9-8C29-486E-A14D-75EA8583EE7B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{137764E9-8C29-486E-A14D-75EA8583EE7B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{137764E9-8C29-486E-A14D-75EA8583EE7B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{137764E9-8C29-486E-A14D-75EA8583EE7B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AFCF34B7-C8DD-488C-B175-5D0B77C16324}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AFCF34B7-C8DD-488C-B175-5D0B77C16324}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AFCF34B7-C8DD-488C-B175-5D0B77C16324}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AFCF34B7-C8DD-488C-B175-5D0B77C16324}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
