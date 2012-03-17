@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using Moq;
 using Spritastic;
+using Spritastic.Facts.Utilities;
 using Spritastic.Generator;
 using Spritastic.Parser;
 using Xunit;

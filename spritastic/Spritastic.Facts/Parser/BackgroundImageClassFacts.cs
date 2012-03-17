@@ -2,7 +2,7 @@
 using Xunit;
 using Xunit.Extensions;
 
-namespace Spriting.Facts
+namespace Spritastic.Facts.Parser
 {
     public class BackgroundImageClassFacts
     {

@@ -1,6 +1,6 @@
 ﻿using System.Drawing;
 
-namespace Spriting.Facts
+namespace Spritastic.Facts.Utilities
 {
     public static class BitmapTestExtentions
     {

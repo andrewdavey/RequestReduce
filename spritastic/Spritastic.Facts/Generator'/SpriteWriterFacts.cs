@@ -1,5 +1,6 @@
 ﻿using System.Drawing;
 using System.IO;
+using Spritastic.Facts.Utilities;
 using Spritastic.Generator;
 using Xunit;
 

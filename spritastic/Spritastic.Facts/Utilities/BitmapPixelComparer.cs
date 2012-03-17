@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
 
-namespace Spriting.Facts
+namespace Spritastic.Facts.Utilities
 {
     public class BitmapPixelComparer : IEqualityComparer<Bitmap>
     {

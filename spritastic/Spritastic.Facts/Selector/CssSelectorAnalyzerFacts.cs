@@ -1,7 +1,7 @@
 ﻿using Spritastic.Selector;
 using Xunit;
 
-namespace Spriting.Facts
+namespace Spritastic.Facts.Selector
 {
     public class CssSelectorAnalyzerFacts
     {

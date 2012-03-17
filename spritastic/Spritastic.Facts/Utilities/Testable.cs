@@ -2,7 +2,7 @@
 using StructureMap.AutoMocking;
 using Moq;
 
-namespace Spriting.Facts
+namespace Spritastic.Facts.Utilities
 {
     public class Testable<TClassUnderTest> where TClassUnderTest : class
     {
