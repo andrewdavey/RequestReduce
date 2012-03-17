@@ -490,7 +490,6 @@ namespace Spriting.Facts
             {
                 var testable = new TestableSpriteManager();
                 var exception = new OptimizationException("Appropriately friendly error message");
-                Exception error = null;
                 testable.Settings.ImageOptimizationDisabled = false;
                 testable.Settings.ImageOptimizationCompressionLevel = 2;
                 testable.MockSpriteContainer.Setup(x => x.Size).Returns(1);
