@@ -6,26 +6,33 @@ namespace Spritastic
     public class SpriteGenerator
     {
         private readonly SpritingSettings settings;
-        private readonly Func<string, byte[]> getImageBytes;
-        private readonly Func<byte[], string> saveSpriteAndReturnUrl;
-        private readonly Predicate<BackgroundImageClass> shouldExcludeImage;
+        private Func<string, byte[]> getImageBytes;
+        private Func<byte[], string> saveSpriteAndReturnUrl;
+        private Predicate<BackgroundImageClass> shouldExcludeImage;
 
-        public SpriteGenerator(SpritingSettings settings, Func<string, byte[]> getImageBytes, Func<byte[], string> saveSpriteAndReturnUrl)
-            : this(settings, getImageBytes, saveSpriteAndReturnUrl, null)
-        {
-        }
-
-        public SpriteGenerator(SpritingSettings settings, Func<string, byte[]> getImageBytes, Func<byte[], string> saveSpriteAndReturnUrl, Predicate<BackgroundImageClass> shouldExcludeImage)
+        public SpriteGenerator(SpritingSettings settings)
         {
             this.settings = settings;
-            this.getImageBytes = getImageBytes;
-            this.saveSpriteAndReturnUrl = saveSpriteAndReturnUrl;
-            this.shouldExcludeImage = shouldExcludeImage;
         }
 
         public SpritePackage GenerateFromCss(string cssContent)
         {
             return null;
+        }
+
+        public void RegisterImageLoader(Func<string, byte[]> getImageBytes)
+        {
+            this.getImageBytes = getImageBytes;
+        }
+
+        public void RegisterSpriteStorage(Func<byte[], string> saveSpriteAndReturnUrl)
+        {
+            this.saveSpriteAndReturnUrl = saveSpriteAndReturnUrl;
+        }
+
+        public void RegisterImageExclusionFilter(Predicate<BackgroundImageClass> shouldExcludeImage)
+        {
+            this.shouldExcludeImage = shouldExcludeImage;
         }
     }
 }
