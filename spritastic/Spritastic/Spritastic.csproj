@@ -55,6 +55,10 @@
     <Compile Include="Parser\PositionMode.cs" />
     <Compile Include="Parser\PropertyCompletion.cs" />
     <Compile Include="Parser\RepeatStyle.cs" />
+    <Compile Include="Sprite.cs" />
+    <Compile Include="SpriteException.cs" />
+    <Compile Include="SpriteGenerator.cs" />
+    <Compile Include="SpritePackage.cs" />
     <Compile Include="Utilities\Hasher.cs" />
     <Compile Include="Generator\ICssImageTransformer.cs" />
     <Compile Include="Selector\ICssSelectorAnalyzer.cs" />
