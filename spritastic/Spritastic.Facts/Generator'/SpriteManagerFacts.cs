@@ -8,7 +8,9 @@ using Moq;
 using Spritastic;
 using Spritastic.Facts.Utilities;
 using Spritastic.Generator;
+using Spritastic.ImageLoad;
 using Spritastic.Parser;
+using Spritastic.SpriteStore;
 using Spritastic.Utilities;
 using Xunit;
 using Xunit.Extensions;
@@ -28,46 +30,37 @@ namespace Spriting.Facts
             }
         }
 
-        class TestableSpriteManager
+        class SpriteManagerToTest : SpriteManager
         {
-            public SpritingSettings Settings { get; private set; }
-            public SpriteManager ClassUnderTest { get; private set; }
-            public Mock<IPngOptimizer> MockPngOptimizer { get; private set; }
             public Mock<ISpriteContainer> MockSpriteContainer { get; private set; }
-            public List<Func<BackgroundImageClass, bool>> ImageExclusions { get; private set; }
-            public int SpriteContainerCreationCount { get; private set; }
-            public Func<byte[], string> SaveSpriteAndReturnUrl { get; set; }
+            public new ISpriteContainer SpriteContainer { get { return base.SpriteContainer; } set { base.SpriteContainer = value; } }
+            public SpriteManagerToTest(ISpritingSettings config, IImageLoader imageLoader, ISpriteStore spriteStore, IPngOptimizer pngOptimizer)
+                : base(config, imageLoader, spriteStore, pngOptimizer)
+            {
+                MockSpriteContainer = new Mock<ISpriteContainer>();
+                MockSpriteContainer.Setup(x => x.GetEnumerator()).Returns(new List<SpritedImage>().GetEnumerator());
+                MockSpriteContainer.Setup(x => x.Width).Returns(1);
+                MockSpriteContainer.Setup(x => x.Height).Returns(1);
+                MockSpriteContainer.Setup(x => x.AddImage(It.IsAny<BackgroundImageClass>())).
+                    Returns((BackgroundImageClass c) => new SpritedImage(1, c, null));
+                base.SpriteContainer = MockSpriteContainer.Object;
+            }
+        }
+
+        class TestableSpriteManager : Testable<SpriteManagerToTest>
+        {
+            public readonly ISpritingSettings Settings = new SpritingSettings
+                                                    {
+                                                        SpriteSizeLimit = 1000,
+                                                        SpriteColorLimit = 1000,
+                                                        IsFullTrust = true
+                                                    };
 
             public TestableSpriteManager()
             {
-                Settings = new SpritingSettings
-                {
-                    SpriteSizeLimit = 1000,
-                    SpriteColorLimit = 1000,
-                    IsFullTrust = true
-                };
+                Inject(Settings);
+                Mock<ISpriteStore>().Setup(x => x.SaveSpriteAndReturnUrl(It.IsAny<byte[]>())).Returns("url");
 
-                MockPngOptimizer = new Mock<IPngOptimizer>();
-                ImageExclusions = new List<Func<BackgroundImageClass, bool>>();
-
-                SaveSpriteAndReturnUrl = _ => "url";
-
-                ClassUnderTest = new SpriteManager(Settings,
-                    CreateSpriteContainer,
-                    bytes => SaveSpriteAndReturnUrl(bytes),
-                    MockPngOptimizer.Object, ImageExclusions);
-            }
-
-            ISpriteContainer CreateSpriteContainer()
-            {
-                SpriteContainerCreationCount++;
-                MockSpriteContainer = new Mock<ISpriteContainer>();
-                MockSpriteContainer.Setup(x => x.GetEnumerator()).Returns(new List<SpritedImage>().GetEnumerator());
-                MockSpriteContainer.SetupGet(c => c.Width).Returns(1);
-                MockSpriteContainer.SetupGet(c => c.Height).Returns(1);
-                MockSpriteContainer.Setup(c => c.AddImage(It.IsAny<BackgroundImageClass>()))
-                    .Returns<BackgroundImageClass>(b => new SpritedImage(1, b, null));
-                return MockSpriteContainer.Object;
             }
         }
 
@@ -81,7 +74,7 @@ namespace Spriting.Facts
 
                 testable.ClassUnderTest.Add(image);
 
-                testable.MockSpriteContainer.Verify(x => x.AddImage(image), Times.Exactly(1));
+                testable.ClassUnderTest.MockSpriteContainer.Verify(x => x.AddImage(image), Times.Exactly(1));
             }
 
             [Fact]
@@ -106,11 +99,11 @@ namespace Spriting.Facts
             {
                 var testable = new TestableSpriteManager();
                 testable.Settings.SpriteSizeLimit = 1;
-                testable.MockSpriteContainer.Setup(x => x.Size).Returns(1);
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Size).Returns(1);
 
                 testable.ClassUnderTest.Add(new BackgroundImageClass("", 0) { ImageUrl = "imageUrl" });
 
-                Assert.Equal(2, testable.SpriteContainerCreationCount);
+                Assert.NotEqual(testable.ClassUnderTest.MockSpriteContainer.Object, testable.ClassUnderTest.SpriteContainer);
             }
 
             [Fact]
@@ -118,51 +111,51 @@ namespace Spriting.Facts
             {
                 var testable = new TestableSpriteManager();
                 testable.Settings.SpriteColorLimit = 1;
-                testable.MockSpriteContainer.Setup(x => x.Colors).Returns(1);
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Colors).Returns(1);
 
                 testable.ClassUnderTest.Add(new BackgroundImageClass("", 0) { ImageUrl = "imageUrl" });
 
-                Assert.Equal(2, testable.SpriteContainerCreationCount);
+                Assert.NotEqual(testable.ClassUnderTest.MockSpriteContainer.Object, testable.ClassUnderTest.SpriteContainer);
             }
 
             [Fact]
             public void WillNotFlushWhenColorCountPassesThresholdAndImageOptimizationIsDisabed()
             {
                 var testable = new TestableSpriteManager();
-                testable.Settings.SpriteColorLimit = 1;
+                testable.Settings.SpriteSizeLimit = 1;
                 testable.Settings.ImageOptimizationDisabled = true;
-                testable.MockSpriteContainer.Setup(x => x.Colors).Returns(1);
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Colors).Returns(1);
 
                 testable.ClassUnderTest.Add(new BackgroundImageClass("", 0) { ImageUrl = "imageUrl" });
 
-                Assert.Equal(1, testable.SpriteContainerCreationCount);
+                Assert.Same(testable.ClassUnderTest.MockSpriteContainer.Object, testable.ClassUnderTest.SpriteContainer);
             }
 
             [Fact]
             public void WillNotFlushWhenColorCountPassesThresholdAndImageQuantizationIsDisabed()
             {
                 var testable = new TestableSpriteManager();
-                testable.Settings.SpriteColorLimit = 1;
+                testable.Settings.SpriteSizeLimit = 1;
                 testable.Settings.ImageQuantizationDisabled = true;
-                testable.MockSpriteContainer.Setup(x => x.Colors).Returns(1);
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Colors).Returns(1);
 
                 testable.ClassUnderTest.Add(new BackgroundImageClass("", 0) { ImageUrl = "imageUrl" });
 
-                Assert.Equal(1, testable.SpriteContainerCreationCount);
+                Assert.Same(testable.ClassUnderTest.MockSpriteContainer.Object, testable.ClassUnderTest.SpriteContainer);
             }
 
             [Theory,
             InlineData(40, 40, 0, 50, 40, 0),
             InlineData(40, 40, 0, 40, 50, 0),
             InlineData(40, 40, 0, 40, 40, -10)]
-            public void WillTreatSameUrlwithDifferentWidthHeightOrXOffsetAsDifferentImagesAndReturnDistinctSprite(int image1Width, int image1Height, int image1XOffset, int image2Width, int image2Height, int image2XOffset)
+            public void WillTreatSameUrlwithDifferentWithHeightOrXOffsetAsDifferentImagesAndReturnDistinctSprite(int image1Width, int image1Height, int image1XOffset, int image2Width, int image2Height, int image2XOffset)
             {
                 var testable = new TestableSpriteManager();
 
                 testable.ClassUnderTest.Add(new BackgroundImageClass("", 0) { ImageUrl = "image1", ExplicitWidth = image1Width, ExplicitHeight = image1Height, XOffset = new Position { Offset = image1XOffset, PositionMode = PositionMode.Unit} });
                 testable.ClassUnderTest.Add(new BackgroundImageClass("", 0) { ImageUrl = "image1", ExplicitWidth = image2Width, ExplicitHeight = image2Height, XOffset = new Position { Offset = image2XOffset, PositionMode = PositionMode.Unit } });
 
-                testable.MockSpriteContainer.Verify(x => x.AddImage(It.IsAny<BackgroundImageClass>()), Times.Exactly(2));
+                testable.ClassUnderTest.MockSpriteContainer.Verify(x => x.AddImage(It.IsAny<BackgroundImageClass>()), Times.Exactly(2));
             }
 
             [Fact]
@@ -174,7 +167,7 @@ namespace Spriting.Facts
 
                 testable.ClassUnderTest.Add(image);
 
-                testable.MockSpriteContainer.Verify(x => x.AddImage(image), Times.Exactly(1));
+                testable.ClassUnderTest.MockSpriteContainer.Verify(x => x.AddImage(image), Times.Exactly(1));
             }
 
             [Fact]
@@ -198,11 +191,11 @@ namespace Spriting.Facts
             {
                 var testable = new TestableSpriteManager();
                 var image = new BackgroundImageClass("", 0) { ImageUrl = "", ExplicitWidth = 110};
-                testable.ImageExclusions.Add(x => x.Width > 100);
+                testable.ClassUnderTest.ImageExclusionFilter = (x => x.Width > 100);
 
                 testable.ClassUnderTest.Add(image);
 
-                testable.MockSpriteContainer.Verify(x => x.AddImage(image), Times.Never());
+                testable.ClassUnderTest.MockSpriteContainer.Verify(x => x.AddImage(image), Times.Never());
             }
 
             [Fact]
@@ -210,7 +203,7 @@ namespace Spriting.Facts
             {
                 var testable = new TestableSpriteManager();
                 var image = new BackgroundImageClass("", 0) { ImageUrl = "" };
-                testable.MockSpriteContainer.Setup(x => x.AddImage(image)).Throws(new InvalidOperationException());
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.AddImage(image)).Throws(new InvalidOperationException());
 
                 var ex = Record.Exception(() => testable.ClassUnderTest.Add(image));
                 
@@ -225,24 +218,22 @@ namespace Spriting.Facts
             public void WillNotCreateImageWriterIfContainerIsEmpty()
             {
                 var testable = new TestableSpriteManager();
-                int saveCount = 0;
-                testable.SaveSpriteAndReturnUrl = _ => { saveCount++; return ""; };
-                testable.MockSpriteContainer.Setup(x => x.Size).Returns(0);
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Size).Returns(0);
 
                 testable.ClassUnderTest.Flush();
 
-                Assert.Equal(0, saveCount);
+                testable.Mock<ISpriteStore>().Verify(x => x.SaveSpriteAndReturnUrl(It.IsAny<byte[]>()), Times.Never());
             }
 
             [Fact]
             public void WillCreateImageWriterWithCorrectDimensions()
             {
                 var testable = new TestableSpriteManager();
-                testable.MockSpriteContainer.Setup(x => x.Width).Returns(1);
-                testable.MockSpriteContainer.Setup(x => x.Height).Returns(1);
-                testable.MockSpriteContainer.Setup(x => x.Size).Returns(1);
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Width).Returns(1);
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Height).Returns(1);
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Size).Returns(1);
                 byte[] bytes = null;
-                testable.MockPngOptimizer
+                testable.Mock<IPngOptimizer>()
                     .Setup(x => x.OptimizePng(It.IsAny<byte[]>(), It.IsAny<int>(), false))
                     .Callback<byte[], int, bool>((a, b, c) => bytes = a)
                     .Returns(() => bytes);
@@ -258,17 +249,17 @@ namespace Spriting.Facts
             public void WillWriteEachImage()
             {
                 var testable = new TestableSpriteManager();
-                testable.MockSpriteContainer.Setup(x => x.Width).Returns(35);
-                testable.MockSpriteContainer.Setup(x => x.Height).Returns(18);
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Width).Returns(35);
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Height).Returns(18);
                 var images = new List<SpritedImage>
                                  {
                                      new SpritedImage(1, null, TestImages.Image15X17),
                                      new SpritedImage(1, null, TestImages.Image18X18)
                                  };
-                testable.MockSpriteContainer.Setup(x => x.GetEnumerator()).Returns(() => images.GetEnumerator());
-                testable.MockSpriteContainer.Setup(x => x.Size).Returns(1);
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.GetEnumerator()).Returns(() => images.GetEnumerator());
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Size).Returns(1);
                 byte[] bytes = null;
-                testable.MockPngOptimizer
+                testable.Mock<IPngOptimizer>()
                     .Setup(x => x.OptimizePng(It.IsAny<byte[]>(), It.IsAny<int>(), false))
                     .Callback<byte[], int, bool>((a, b, c) => bytes = a)
                     .Returns(() => bytes);
@@ -284,17 +275,17 @@ namespace Spriting.Facts
             public void WillIncrementPositionByWidthOfPreviousImage()
             {
                 var testable = new TestableSpriteManager();
-                testable.MockSpriteContainer.Setup(x => x.Width).Returns(35);
-                testable.MockSpriteContainer.Setup(x => x.Height).Returns(18);
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Width).Returns(35);
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Height).Returns(18);
                 var images = new List<SpritedImage>
                                  {
                                      new SpritedImage(1, null, TestImages.Image15X17),
                                      new SpritedImage(1, null, TestImages.Image18X18)
                                  };
-                testable.MockSpriteContainer.Setup(x => x.GetEnumerator()).Returns(() => images.GetEnumerator());
-                testable.MockSpriteContainer.Setup(x => x.Size).Returns(1);
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.GetEnumerator()).Returns(() => images.GetEnumerator());
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Size).Returns(1);
                 byte[] bytes = null;
-                testable.MockPngOptimizer
+                testable.Mock<IPngOptimizer>()
                     .Setup(x => x.OptimizePng(It.IsAny<byte[]>(), It.IsAny<int>(), false))
                     .Callback<byte[], int, bool>((a, b, c) => bytes = a)
                     .Returns(() => bytes);
@@ -308,8 +299,8 @@ namespace Spriting.Facts
             public void WillSetPositionToSamePositionOfPreviousDuplicate()
             {
                 var testable = new TestableSpriteManager();
-                testable.MockSpriteContainer.Setup(x => x.Width).Returns(35);
-                testable.MockSpriteContainer.Setup(x => x.Height).Returns(18);
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Width).Returns(35);
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Height).Returns(18);
                 var metadata = new SpriteManager.ImageMetadata(new BackgroundImageClass("css1",1));
                 var metadata2 = new SpriteManager.ImageMetadata(new BackgroundImageClass("css2", 2));
                 testable.ClassUnderTest.SpriteList.Add(new KeyValuePair<SpriteManager.ImageMetadata, SpritedImage>(metadata, new SpritedImage(1, null, TestImages.Image15X17) { Metadata = metadata }));
@@ -320,8 +311,8 @@ namespace Spriting.Facts
                                      testable.ClassUnderTest.SpriteList[0].Value,
                                      testable.ClassUnderTest.SpriteList[1].Value,
                                  };
-                testable.MockSpriteContainer.Setup(x => x.GetEnumerator()).Returns(() => images.GetEnumerator());
-                testable.MockSpriteContainer.Setup(x => x.Size).Returns(1);
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.GetEnumerator()).Returns(() => images.GetEnumerator());
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Size).Returns(1);
 
                 testable.ClassUnderTest.Flush();
 
@@ -335,10 +326,10 @@ namespace Spriting.Facts
             {
                 var testable = new TestableSpriteManager();
                 byte[] bytes = null;
-                testable.MockPngOptimizer.Setup(x => x.OptimizePng(It.IsAny<byte[]>(), It.IsAny<int>(), false))
+                testable.Mock<IPngOptimizer>().Setup(x => x.OptimizePng(It.IsAny<byte[]>(), It.IsAny<int>(), false))
                     .Callback<byte[], int, bool>((a, b, c) => bytes = a)
                     .Returns(() => bytes);
-                testable.MockSpriteContainer.Setup(x => x.Size).Returns(1);
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Size).Returns(1);
 
                 testable.ClassUnderTest.Flush();
 
@@ -350,22 +341,21 @@ namespace Spriting.Facts
             public void WillResetSpriteContainerAfterFlush()
             {
                 var testable = new TestableSpriteManager();
-                testable.MockSpriteContainer.Setup(x => x.Width).Returns(20);
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Width).Returns(20);
 
                 testable.ClassUnderTest.Flush();
 
-                Assert.Equal(2, testable.SpriteContainerCreationCount);
+                Assert.Equal(0, testable.ClassUnderTest.SpriteContainer.Width);
             }
 
             [Fact]
             public void WillAddUrlsToSpritesUponFlush()
             {
                 var testable = new TestableSpriteManager();
-                testable.MockSpriteContainer.Setup(x => x.Size).Returns(1);
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Size).Returns(1);
                 var sprites = new List<SpritedImage> { new SpritedImage(1, null, TestImages.Image15X17), new SpritedImage(1, null, TestImages.Image18X18) };
-                testable.MockSpriteContainer.Setup(x => x.GetEnumerator()).Returns(
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.GetEnumerator()).Returns(
                     () => sprites.GetEnumerator());
-                testable.SaveSpriteAndReturnUrl = bytes => "url";
 
                 testable.ClassUnderTest.Flush();
 
@@ -379,14 +369,13 @@ namespace Spriting.Facts
                 var testable = new TestableSpriteManager();
                 testable.Settings.ImageOptimizationDisabled = false;
                 testable.Settings.ImageOptimizationCompressionLevel = 2;
-                testable.SaveSpriteAndReturnUrl = _ => "url";                
-                testable.MockSpriteContainer.Setup(x => x.Size).Returns(1);
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Size).Returns(1);
                 var optimizedBytes = new byte[] {5, 5, 5, 5, 5};
-                testable.MockPngOptimizer.Setup(x => x.OptimizePng(It.IsAny<byte[]>(), 2, false)).Returns(optimizedBytes).Verifiable();
+                testable.Mock<IPngOptimizer>().Setup(x => x.OptimizePng(It.IsAny<byte[]>(), 2, false)).Returns(optimizedBytes).Verifiable();
 
                 testable.ClassUnderTest.Flush();
 
-                testable.MockPngOptimizer.VerifyAll();
+                testable.Mock<IPngOptimizer>().VerifyAll();
             }
 
             [Fact]
@@ -394,9 +383,9 @@ namespace Spriting.Facts
             {
                 var testable = new TestableSpriteManager();
                 testable.Settings.ImageOptimizationDisabled = true;
-                testable.MockSpriteContainer.Setup(x => x.Size).Returns(1);
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Size).Returns(1);
                 var optimizedBytes = new byte[0];
-                testable.MockPngOptimizer.Setup(x => x.OptimizePng(It.IsAny<byte[]>(), It.IsAny<int>(), false)).
+                testable.Mock<IPngOptimizer>().Setup(x => x.OptimizePng(It.IsAny<byte[]>(), It.IsAny<int>(), false)).
                     Callback<byte[], int, bool>((a, b, c) => optimizedBytes = a).Returns(() => optimizedBytes);
 
                 testable.ClassUnderTest.Flush();
@@ -409,9 +398,9 @@ namespace Spriting.Facts
             {
                 var testable = new TestableSpriteManager();
                 testable.Settings.IsFullTrust = false;
-                testable.MockSpriteContainer.Setup(x => x.Size).Returns(1);
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Size).Returns(1);
                 var optimizedBytes = new byte[0];
-                testable.MockPngOptimizer.Setup(x => x.OptimizePng(It.IsAny<byte[]>(), It.IsAny<int>(), false)).
+                testable.Mock<IPngOptimizer>().Setup(x => x.OptimizePng(It.IsAny<byte[]>(), It.IsAny<int>(), false)).
                     Callback<byte[], int, bool>((a, b, c) => optimizedBytes = a).Returns(() => optimizedBytes);
 
                 testable.ClassUnderTest.Flush();
@@ -429,8 +418,8 @@ namespace Spriting.Facts
                 byte[] bytes = null;
                 testable.Settings.ImageOptimizationDisabled = false;
                 testable.Settings.ImageOptimizationCompressionLevel = expectedCompression;
-                testable.MockSpriteContainer.Setup(x => x.Size).Returns(1);
-                testable.MockPngOptimizer.Setup(x => x.OptimizePng(It.IsAny<byte[]>(), It.IsAny<int>(), false)).
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Size).Returns(1);
+                testable.Mock<IPngOptimizer>().Setup(x => x.OptimizePng(It.IsAny<byte[]>(), It.IsAny<int>(), false)).
                     Callback<byte[], int, bool>((a, b, c) => { compression = b;
                                                                  bytes = a;
                     }).Returns(() => bytes);
@@ -450,8 +439,8 @@ namespace Spriting.Facts
                 byte[] bytes = null;
                 testable.Settings.ImageOptimizationDisabled = false;
                 testable.Settings.ImageQuantizationDisabled = expectedToBeDisabled;
-                testable.MockSpriteContainer.Setup(x => x.Size).Returns(1);
-                testable.MockPngOptimizer.Setup(
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Size).Returns(1);
+                testable.Mock<IPngOptimizer>().Setup(
                     x => x.OptimizePng(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<bool>())).Callback
                     <byte[], int, bool>((a, b, c) =>
                                             {
@@ -471,12 +460,12 @@ namespace Spriting.Facts
                 byte[] originalBytes = null;
                 byte[] optimizedBytes = null;
                 var images = new List<SpritedImage> { new SpritedImage(1, null, TestImages.Image15X17), new SpritedImage(1, null, TestImages.Image18X18) };
-                testable.MockSpriteContainer.Setup(x => x.GetEnumerator()).Returns(() => images.GetEnumerator());
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.GetEnumerator()).Returns(() => images.GetEnumerator());
                 testable.Settings.ImageOptimizationDisabled = false;
                 testable.Settings.ImageOptimizationCompressionLevel = 2;
-                testable.SaveSpriteAndReturnUrl = bytesToSave => { optimizedBytes = bytesToSave; return "url"; };
-                testable.MockSpriteContainer.Setup(x => x.Size).Returns(1);
-                testable.MockPngOptimizer
+                testable.Mock<ISpriteStore>().Setup(x => x.SaveSpriteAndReturnUrl(It.IsAny<byte[]>())).Callback<byte[]>(bytesToSave => optimizedBytes = bytesToSave).Returns("url");
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Size).Returns(1);
+                testable.Mock<IPngOptimizer>()
                     .Setup(x => x.OptimizePng(It.IsAny<byte[]>(), 2, false))
                     .Callback<byte[], int, bool>((a, b, c) => originalBytes = a)
                     .Throws(new OptimizationException(""));
@@ -493,8 +482,8 @@ namespace Spriting.Facts
                 var exception = new OptimizationException("Appropriately friendly error message");
                 testable.Settings.ImageOptimizationDisabled = false;
                 testable.Settings.ImageOptimizationCompressionLevel = 2;
-                testable.MockSpriteContainer.Setup(x => x.Size).Returns(1);
-                testable.MockPngOptimizer.Setup(x => x.OptimizePng(It.IsAny<byte[]>(), 2, false)).Throws(exception);
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Size).Returns(1);
+                testable.Mock<IPngOptimizer>().Setup(x => x.OptimizePng(It.IsAny<byte[]>(), 2, false)).Throws(exception);
 
                 testable.ClassUnderTest.Flush();
 

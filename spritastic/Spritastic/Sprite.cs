@@ -1,16 +1,14 @@
-using System.Drawing;
-
 namespace Spritastic
 {
     public class Sprite
     {
-        public Sprite(string url, Bitmap image)
+        public Sprite(string url, byte[] image)
         {
             Image = image;
             Url = url;
         }
 
         public string Url { get; private set; }
-        public Bitmap Image { get; private set; }
+        public byte[] Image { get; private set; }
     }
 }

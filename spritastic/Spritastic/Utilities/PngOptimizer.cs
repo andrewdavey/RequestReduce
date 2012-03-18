@@ -10,14 +10,12 @@ namespace Spritastic.Utilities
     public class PngOptimizer : IPngOptimizer
     {
         private readonly IFileWrapper fileWrapper;
-        private readonly string writeableTempDirectory;
         private readonly IWuQuantizer wuQuantizer;
         private readonly string optiPngLocation;
 
-        public PngOptimizer(IFileWrapper fileWrapper, string writeableTempDirectory, IWuQuantizer wuQuantizer)
+        public PngOptimizer(IFileWrapper fileWrapper, IWuQuantizer wuQuantizer)
         {
             this.fileWrapper = fileWrapper;
-            this.writeableTempDirectory = writeableTempDirectory;
             this.wuQuantizer = wuQuantizer;
             var dllDir = AppDomain.CurrentDomain.RelativeSearchPath ?? AppDomain.CurrentDomain.BaseDirectory;
             optiPngLocation = string.Format("{0}\\OptiPng.exe", dllDir);
@@ -41,18 +39,11 @@ namespace Spritastic.Utilities
 
             if (fileWrapper.FileExists(optiPngLocation))
             {
-                var scratchFile = string.Format("{0}\\scratch-{1}.png", writeableTempDirectory, Hasher.Hash(bytes));
-                try
-                {
-                    fileWrapper.Save(optimizedBytes, scratchFile);
-                    var arg = String.Format(@"-fix -o{1} ""{0}""", scratchFile, compressionLevel);
-                    InvokeExecutable(arg, optiPngLocation);
-                    optimizedBytes = fileWrapper.GetFileBytes(scratchFile);
-                }
-                finally
-                {
-                    fileWrapper.DeleteFile(scratchFile);
-                }
+                var scratchFile = Path.GetTempFileName();
+                fileWrapper.Save(optimizedBytes, scratchFile);
+                var arg = String.Format(@"-fix -o{1} ""{0}""", scratchFile, compressionLevel);
+                InvokeExecutable(arg, optiPngLocation);
+                optimizedBytes = fileWrapper.GetFileBytes(scratchFile);
             }
 
             return optimizedBytes;

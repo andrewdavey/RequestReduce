@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Spritastic.ImageLoad;
 using Spritastic.Parser;
 
 namespace Spritastic.Generator
@@ -11,5 +12,6 @@ namespace Spritastic.Generator
         int Colors { get; }
         int Width { get; }
         int Height { get; }
+        IImageLoader ImageLoader { get; set; }
     }
 }

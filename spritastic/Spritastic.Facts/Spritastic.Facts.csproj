@@ -62,6 +62,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Parser\BackgroundImageClassFacts.cs" />
+    <Compile Include="SpriteGeneratorFacts.cs" />
     <Compile Include="Utilities\BitmapPixelComparer.cs" />
     <Compile Include="Generator%27\CssImageTransformerFacts.cs" />
     <Compile Include="Selector\CssSelectorAnalyzerFacts.cs" />

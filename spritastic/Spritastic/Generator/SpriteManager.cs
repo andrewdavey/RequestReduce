@@ -2,29 +2,26 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Spritastic.ImageLoad;
 using Spritastic.Parser;
+using Spritastic.SpriteStore;
 using Spritastic.Utilities;
 
 namespace Spritastic.Generator
 {
     public class SpriteManager : ISpriteManager
     {
-        ISpriteContainer spriteContainer;
-        readonly SpritingSettings config;
-        readonly Func<byte[], string> saveSpriteAndReturnUrl;
-        readonly Func<ISpriteContainer> createNewSpriteContainer;
+        protected ISpriteContainer SpriteContainer;
+        readonly ISpritingSettings config;
         readonly IPngOptimizer pngOptimizer;
-        readonly IEnumerable<Func<BackgroundImageClass, bool>> imageExclusions;
         readonly IList<KeyValuePair<ImageMetadata, SpritedImage>> spriteList = new List<KeyValuePair<ImageMetadata, SpritedImage>>();
 
-        public SpriteManager(SpritingSettings config, Func<ISpriteContainer> createNewSpriteContainer, Func<byte[], string> saveSpriteAndReturnUrl, IPngOptimizer pngOptimizer, IEnumerable<Func<BackgroundImageClass, bool>> imageExclusions)
+        public SpriteManager(ISpritingSettings config, IImageLoader imageLoader, ISpriteStore spriteStore, IPngOptimizer pngOptimizer)
         {
-            this.createNewSpriteContainer = createNewSpriteContainer;
+            SpriteStore = spriteStore;
             this.pngOptimizer = pngOptimizer;
-            this.imageExclusions = imageExclusions;
             this.config = config;
-            this.saveSpriteAndReturnUrl = saveSpriteAndReturnUrl;
-            spriteContainer = createNewSpriteContainer();
+            SpriteContainer = new SpriteContainer(imageLoader, config);
             Errors = new List<Exception>();
         }
 
@@ -34,11 +31,21 @@ namespace Spritastic.Generator
             get { return spriteList; }
         }
 
+        public IImageLoader ImageLoader
+        {
+            get { return SpriteContainer.ImageLoader; }
+            set { SpriteContainer.ImageLoader = value; }
+        }
+
+        public Predicate<BackgroundImageClass> ImageExclusionFilter { get; set; }
+
+        public ISpriteStore SpriteStore { get; set; }
+
         public IList<Exception> Errors { get; internal set; }
 
         public virtual void Add(BackgroundImageClass image)
         {
-            if (imageExclusions.Any(exclude => exclude(image))) return;
+            if (ImageExclusionFilter != null && ImageExclusionFilter(image)) return;
 
             var imageKey = new ImageMetadata(image);
             
@@ -58,7 +65,7 @@ namespace Spritastic.Generator
             }
             try
             {
-                spritedImage = spriteContainer.AddImage(image);
+                spritedImage = SpriteContainer.AddImage(image);
                 spritedImage.Metadata = imageKey;
             }
             catch (Exception ex)
@@ -71,19 +78,19 @@ namespace Spritastic.Generator
                 return;
             }
             spriteList.Add(new KeyValuePair<ImageMetadata, SpritedImage>(imageKey, spritedImage));
-            if (spriteContainer.Size >= config.SpriteSizeLimit || (spriteContainer.Colors >= config.SpriteColorLimit && !config.ImageQuantizationDisabled && !config.ImageOptimizationDisabled))
+            if (SpriteContainer.Size >= config.SpriteSizeLimit || (SpriteContainer.Colors >= config.SpriteColorLimit && !config.ImageQuantizationDisabled && !config.ImageOptimizationDisabled))
                 Flush();
         }
 
         public virtual void Flush()
         {
-            if(spriteContainer.Size > 0)
+            if(SpriteContainer.Size > 0)
             {
                 Tracer.Trace("Beginning to Flush sprite");
-                using (var spriteWriter = new SpriteWriter(spriteContainer.Width, spriteContainer.Height))
+                using (var spriteWriter = new SpriteWriter(SpriteContainer.Width, SpriteContainer.Height))
                 {
                     var offset = 0;
-                    foreach (var image in spriteContainer)
+                    foreach (var image in SpriteContainer)
                     {
                         spriteWriter.WriteImage(image.Image);
                         image.Position = offset;
@@ -101,8 +108,8 @@ namespace Spritastic.Generator
                         Tracer.Trace(string.Format("Errors optimizing. Received Error: {0}", optEx.Message));
                         Errors.Add(optEx);
                     }
-                    var url = saveSpriteAndReturnUrl(optBytes);
-                    foreach (var image in spriteContainer)
+                    var url = SpriteStore.SaveSpriteAndReturnUrl(optBytes);
+                    foreach (var image in SpriteContainer)
                     {
                         image.Url = url;
                         foreach (var dupImage in spriteList)
@@ -117,7 +124,7 @@ namespace Spritastic.Generator
                 }
                 Tracer.Trace("Finished Flushing sprite");
             }
-            spriteContainer = createNewSpriteContainer();
+            SpriteContainer = new SpriteContainer(ImageLoader, config);
         }
 
         public IEnumerator<SpritedImage> GetEnumerator()

@@ -7,6 +7,7 @@ using Moq;
 using Spritastic;
 using Spritastic.Facts.Utilities;
 using Spritastic.Generator;
+using Spritastic.ImageLoad;
 using Spritastic.Parser;
 using Xunit;
 using Xunit.Extensions;
@@ -30,13 +31,10 @@ namespace Spriting.Facts
                     IsFullTrust = true
                 };
                 Images = new Dictionary<string, byte[]>();
-                ClassUnderTest = new SpriteContainer(DownloadImage, Settings);
-            }
-
-            byte[] DownloadImage(string url)
-            {
-                DownloadCount++;
-                return Images[url];
+                var mockLoader = new Mock<IImageLoader>();
+                mockLoader.Setup(x => x.GetImageBytes(It.IsAny<string>())).Callback(() => DownloadCount++).Returns
+                    <string>(url => Images[url]);
+                ClassUnderTest = new SpriteContainer(mockLoader.Object, Settings);
             }
 
             public byte[] Image15X17 = File.ReadAllBytes(string.Format("{0}\\testimages\\delete.png", AppDomain.CurrentDomain.BaseDirectory));

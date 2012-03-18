@@ -24,6 +24,14 @@ namespace Spritastic.Facts.Utilities
             return Moq.Mock.Get(a);
         }
 
+        public AutoMockedContainer AutoMockContainer 
+        {
+            get
+            {
+                return autoMocker.Container;
+            }
+        }
+
         public void Inject<T>(T type)
         {
             autoMocker.Inject(type);

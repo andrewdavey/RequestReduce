@@ -6,6 +6,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using Spritastic.ImageLoad;
 using Spritastic.Parser;
 
 namespace Spritastic.Generator
@@ -13,14 +14,13 @@ namespace Spritastic.Generator
     class SpriteContainer : ISpriteContainer
     {
         protected readonly IList<SpritedImage> Images = new List<SpritedImage>();
-        private readonly Func<string, byte[]> getImageBytes;
-        private readonly SpritingSettings settings;
+        private readonly ISpritingSettings settings;
         private readonly HashSet<int> uniqueColors = new HashSet<int>();
         internal readonly Dictionary<string, byte[]> DownloadedImages = new Dictionary<string, byte[]>();
 
-        public SpriteContainer(Func<string,byte[]> getImageBytes, SpritingSettings settings)
+        public SpriteContainer(IImageLoader imageLoader, ISpritingSettings settings)
         {
-            this.getImageBytes = getImageBytes;
+            ImageLoader = imageLoader;
             this.settings = settings;
         }
 
@@ -36,7 +36,7 @@ namespace Spritastic.Generator
                 imageBytes = DownloadedImages[image.ImageUrl];
             else
             {
-                imageBytes = getImageBytes(image.ImageUrl);
+                imageBytes = ImageLoader.GetImageBytes(image.ImageUrl);
                 if(image.IsSprite)
                     DownloadedImages.Add(image.ImageUrl, imageBytes);
             }
@@ -175,6 +175,9 @@ namespace Spritastic.Generator
 
         public int Width { get; private set; }
         public int Height { get; private set; }
+
+        public IImageLoader ImageLoader { get; set; }
+
         public IEnumerator<SpritedImage> GetEnumerator()
         {
             return Images.OrderBy(x => x.AverageColor).GetEnumerator();
