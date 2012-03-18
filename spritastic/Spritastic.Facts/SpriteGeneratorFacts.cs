@@ -2,9 +2,7 @@
 using Moq;
 using Spritastic.Facts.Utilities;
 using Spritastic.Generator;
-using Spritastic.ImageLoad;
 using Spritastic.Parser;
-using Spritastic.SpriteStore;
 using Xunit;
 
 namespace Spritastic.Facts
@@ -15,6 +13,7 @@ namespace Spritastic.Facts
         {
             public TestableSpriteGenerator()
             {
+                AutoMockContainer.Configure(x => x.SelectConstructor(() => new SpriteGenerator(null, null, null)));
             }
         }
 
