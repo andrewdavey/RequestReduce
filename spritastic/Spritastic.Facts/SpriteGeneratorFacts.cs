@@ -1,9 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using Moq;
 using Spritastic.Facts.Utilities;
 using Spritastic.Generator;
+using Spritastic.ImageLoad;
 using Spritastic.Parser;
 using Xunit;
 
@@ -15,7 +17,12 @@ namespace Spritastic.Facts
         {
             public TestableSpriteGenerator()
             {
-                AutoMockContainer.Configure(x => x.SelectConstructor(() => new SpriteGenerator(null, null)));
+                AutoMockContainer.Configure(x => { x.SelectConstructor(() => new SpriteGenerator(null, null));
+                                                     x.For<Func<IImageLoader, Func<byte[], string>, ISpriteManager>>().
+                                                         Use(
+                                                             (loader, urlGenerator) =>
+                                                             AutoMockContainer.GetInstance<ISpriteManager>());
+                });
             }
         }
 
@@ -80,24 +87,6 @@ namespace Spritastic.Facts
 
             Assert.Equal(sprite1, result.Sprites[0]);
             Assert.Equal(sprite2, result.Sprites[1]);
-        }
-
-        [Fact]
-        public void WillInjectSpritesToCssAfterDispose()
-        {
-            var testable = new TestableSpriteGenerator();
-            var sprites = new List<SpritedImage> { new SpritedImage(1, null, new Bitmap(1, 1, PixelFormat.Format8bppIndexed)) { Position = -100 } };
-            testable.Mock<ISpriteManager>().Setup(x => x.GetEnumerator()).Returns(sprites.GetEnumerator());
-            var disposeIsCalled = false;
-            var disposeCalled = false;
-            testable.Mock<ISpriteManager>().Setup(x => x.Dispose()).Callback(() => disposeIsCalled = true);
-            testable.Mock<ICssImageTransformer>().Setup(
-                x => x.InjectSprite(It.IsAny<string>(), It.IsAny<SpritedImage>())).Callback(
-                    () => disposeCalled = disposeIsCalled);
-
-            testable.ClassUnderTest.GenerateFromCss("css");
-
-            Assert.True(disposeCalled);
         }
     }
 }
