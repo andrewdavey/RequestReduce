@@ -1,13 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Drawing.Imaging;
-using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using Spritastic.Generator;
 using Spritastic.ImageLoad;
 using Spritastic.Parser;
 using Spritastic.Selector;
-using Spritastic.SpriteStore;
 using Spritastic.Utilities;
 using nQuant;
 
@@ -15,66 +12,66 @@ namespace Spritastic
 {
     public class SpriteGenerator
     {
+        [ThreadStatic] private static MD5CryptoServiceProvider md5;
+
         private static readonly ICssImageTransformer DefaultCssImageTransformer =
             new CssImageTransformer(new CssSelectorAnalyzer());
-        private static readonly IImageLoader DefaultImageLoader;
-        private static readonly ISpriteStore DefaultSpriteStore;
 
-        private readonly ISpritingSettings settings;
+        private static readonly IImageLoader DefaultImageLoader;
+
         private readonly ICssImageTransformer cssImageTransformer;
-        private readonly ISpriteManager spriteManager;
+        private readonly Func<IImageLoader, Func<byte[], string>, ISpriteManager> createSpriteManager;
 
         public SpriteGenerator(ISpritingSettings settings)
-            : this(settings, DefaultCssImageTransformer, new SpriteManager(settings, DefaultImageLoader, DefaultSpriteStore, new PngOptimizer(new FileWrapper(), new WuQuantizer()) ))
+            : this(
+                DefaultCssImageTransformer,
+                (imageLoader, urlGenerator) =>
+                new SpriteManager(settings, imageLoader, urlGenerator,
+                                  new PngOptimizer(new FileWrapper(), new WuQuantizer())))
         {
-            
+
         }
 
-        internal SpriteGenerator(ISpritingSettings settings, ICssImageTransformer cssImageTransformer, ISpriteManager spriteManager)
+        internal SpriteGenerator(ICssImageTransformer cssImageTransformer,
+                                 Func<IImageLoader, Func<byte[], string>, ISpriteManager> createSpriteManager)
         {
-            this.settings = settings;
             this.cssImageTransformer = cssImageTransformer;
-            this.spriteManager = spriteManager;
+            this.createSpriteManager = createSpriteManager;
         }
 
         public SpritePackage GenerateFromCss(string cssContent)
         {
             var newImages = cssImageTransformer.ExtractImageUrls(cssContent);
-            foreach (var imageUrl in newImages)
+            using (
+                var spriteManager = createSpriteManager(ImageLoader ?? DefaultImageLoader,
+                                                        UrlGenerator ?? DefaultUrlGenerator))
             {
-                Tracer.Trace("Adding {0}", imageUrl.ImageUrl);
-                spriteManager.Add(imageUrl);
-                Tracer.Trace("Finished adding {0}", imageUrl.ImageUrl);
+                foreach (var imageUrl in newImages)
+                {
+                    Tracer.Trace("Adding {0}", imageUrl.ImageUrl);
+                    spriteManager.Add(imageUrl);
+                    Tracer.Trace("Finished adding {0}", imageUrl.ImageUrl);
+                }
+                var sprites = spriteManager.Flush();
+                var newCss = spriteManager.Aggregate(cssContent,
+                                                     (current, spritedImage) =>
+                                                     cssImageTransformer.InjectSprite(current,
+                                                                                      spritedImage));
+                return new SpritePackage(newCss, sprites);
             }
-            spriteManager.Dispose();
-            var sprites = new List<Sprite>();
-            var newCss = spriteManager.Aggregate(cssContent, (current, spritedImage) =>
-                                                                 {
-                                                                     using (var memStream = new MemoryStream())
-                                                                     {
-                                                                         spritedImage.Image.Save(memStream, ImageFormat.Png);
-                                                                         sprites.Add(new Sprite(spritedImage.Url,
-                                                                                                    memStream.GetBuffer()));
-                                                                     }
-                                                                     return cssImageTransformer.InjectSprite(current,
-                                                                                                      spritedImage);
-                                                                 });
-            return new SpritePackage(newCss, sprites);
         }
 
-        public void RegisterImageLoader(IImageLoader imageLoader)
+        public IImageLoader ImageLoader { get; set; }
+
+        public Func<byte[], string> UrlGenerator { get; set; }
+
+        private string DefaultUrlGenerator(byte[] bytes)
         {
-            spriteManager.ImageLoader = imageLoader;
+            if (md5 == null)
+                md5 = new MD5CryptoServiceProvider();
+            return new Guid(md5.ComputeHash(bytes)).ToString();
         }
 
-        public void RegisterSpriteStore(ISpriteStore spriteStore)
-        {
-            spriteManager.SpriteStore = spriteStore;
-        }
-
-        public void RegisterImageExclusionFilter(Predicate<BackgroundImageClass> imageExclusionFilter)
-        {
-            spriteManager.ImageExclusionFilter = imageExclusionFilter;
-        }
+        public Predicate<BackgroundImageClass> ImageExclusionFilter { get; set; }
     }
 }

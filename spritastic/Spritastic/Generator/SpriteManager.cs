@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Spritastic.ImageLoad;
 using Spritastic.Parser;
-using Spritastic.SpriteStore;
 using Spritastic.Utilities;
 
 namespace Spritastic.Generator
@@ -13,14 +12,16 @@ namespace Spritastic.Generator
     {
         protected ISpriteContainer SpriteContainer;
         readonly ISpritingSettings config;
+        private readonly Func<byte[], string> generateSpriteUrl;
         readonly IPngOptimizer pngOptimizer;
         readonly IList<KeyValuePair<ImageMetadata, SpritedImage>> spriteList = new List<KeyValuePair<ImageMetadata, SpritedImage>>();
+        readonly IList<Sprite> finalSprites = new List<Sprite>(); 
 
-        public SpriteManager(ISpritingSettings config, IImageLoader imageLoader, ISpriteStore spriteStore, IPngOptimizer pngOptimizer)
+        public SpriteManager(ISpritingSettings config, IImageLoader imageLoader, Func<byte[], string> generateSpriteUrl, IPngOptimizer pngOptimizer)
         {
-            SpriteStore = spriteStore;
             this.pngOptimizer = pngOptimizer;
             this.config = config;
+            this.generateSpriteUrl = generateSpriteUrl;
             SpriteContainer = new SpriteContainer(imageLoader, config);
             Errors = new List<Exception>();
         }
@@ -38,8 +39,6 @@ namespace Spritastic.Generator
         }
 
         public Predicate<BackgroundImageClass> ImageExclusionFilter { get; set; }
-
-        public ISpriteStore SpriteStore { get; set; }
 
         public IList<Exception> Errors { get; internal set; }
 
@@ -82,7 +81,7 @@ namespace Spritastic.Generator
                 Flush();
         }
 
-        public virtual void Flush()
+        public virtual IList<Sprite> Flush()
         {
             if(SpriteContainer.Size > 0)
             {
@@ -108,7 +107,7 @@ namespace Spritastic.Generator
                         Tracer.Trace(string.Format("Errors optimizing. Received Error: {0}", optEx.Message));
                         Errors.Add(optEx);
                     }
-                    var url = SpriteStore.SaveSpriteAndReturnUrl(optBytes);
+                    var url = generateSpriteUrl(optBytes);
                     foreach (var image in SpriteContainer)
                     {
                         image.Url = url;
@@ -121,10 +120,12 @@ namespace Spritastic.Generator
                             }
                         }
                     }
+                    finalSprites.Add(new Sprite(url, optBytes));
                 }
                 Tracer.Trace("Finished Flushing sprite");
             }
             SpriteContainer = new SpriteContainer(ImageLoader, config);
+            return finalSprites;
         }
 
         public IEnumerator<SpritedImage> GetEnumerator()
@@ -139,7 +140,6 @@ namespace Spritastic.Generator
 
         public void Dispose()
         {
-            Flush();
             spriteList.ToList().ForEach(x => x.Value.Image.Dispose());
         }
 

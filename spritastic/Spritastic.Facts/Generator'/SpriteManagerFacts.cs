@@ -34,8 +34,8 @@ namespace Spriting.Facts
         {
             public Mock<ISpriteContainer> MockSpriteContainer { get; private set; }
             public new ISpriteContainer SpriteContainer { get { return base.SpriteContainer; } set { base.SpriteContainer = value; } }
-            public SpriteManagerToTest(ISpritingSettings config, IImageLoader imageLoader, ISpriteStore spriteStore, IPngOptimizer pngOptimizer)
-                : base(config, imageLoader, spriteStore, pngOptimizer)
+            public SpriteManagerToTest(ISpritingSettings config, IImageLoader imageLoader, IPngOptimizer pngOptimizer)
+                : base(config, imageLoader, bytes => "url", pngOptimizer)
             {
                 MockSpriteContainer = new Mock<ISpriteContainer>();
                 MockSpriteContainer.Setup(x => x.GetEnumerator()).Returns(new List<SpritedImage>().GetEnumerator());
@@ -458,21 +458,19 @@ namespace Spriting.Facts
             {
                 var testable = new TestableSpriteManager();
                 byte[] originalBytes = null;
-                byte[] optimizedBytes = null;
                 var images = new List<SpritedImage> { new SpritedImage(1, null, TestImages.Image15X17), new SpritedImage(1, null, TestImages.Image18X18) };
                 testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.GetEnumerator()).Returns(() => images.GetEnumerator());
                 testable.Settings.ImageOptimizationDisabled = false;
                 testable.Settings.ImageOptimizationCompressionLevel = 2;
-                testable.Mock<ISpriteStore>().Setup(x => x.SaveSpriteAndReturnUrl(It.IsAny<byte[]>())).Callback<byte[]>(bytesToSave => optimizedBytes = bytesToSave).Returns("url");
                 testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Size).Returns(1);
                 testable.Mock<IPngOptimizer>()
                     .Setup(x => x.OptimizePng(It.IsAny<byte[]>(), 2, false))
                     .Callback<byte[], int, bool>((a, b, c) => originalBytes = a)
                     .Throws(new OptimizationException(""));
 
-                testable.ClassUnderTest.Flush();
+                var result = testable.ClassUnderTest.Flush();
 
-                Assert.Equal(optimizedBytes, originalBytes);
+                Assert.Equal(result[0].Image, originalBytes);
             }
 
             [Fact]
