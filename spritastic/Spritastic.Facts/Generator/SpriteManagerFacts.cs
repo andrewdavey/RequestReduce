@@ -215,14 +215,14 @@ namespace Spriting.Facts
         public class Flush
         {
             [Fact]
-            public void WillNotCreateImageWriterIfContainerIsEmpty()
+            public void WillNotReturnSpritesIfContainerIsEmpty()
             {
                 var testable = new TestableSpriteManager();
                 testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Size).Returns(0);
 
-                testable.ClassUnderTest.Flush();
+                var result = testable.ClassUnderTest.Flush();
 
-                testable.Mock<ISpriteStore>().Verify(x => x.SaveSpriteAndReturnUrl(It.IsAny<byte[]>()), Times.Never());
+                Assert.Equal(0, result.Count);
             }
 
             [Fact]
@@ -346,6 +346,20 @@ namespace Spriting.Facts
                 testable.ClassUnderTest.Flush();
 
                 Assert.Equal(0, testable.ClassUnderTest.SpriteContainer.Width);
+            }
+
+            [Fact]
+            public void WillCallUrlGenerator()
+            {
+                var testable = new TestableSpriteManager();
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Size).Returns(1);
+                var sprites = new List<SpritedImage> { new SpritedImage(1, null, TestImages.Image15X17), new SpritedImage(1, null, TestImages.Image18X18) };
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.GetEnumerator()).Returns(
+                    () => sprites.GetEnumerator());
+
+                var result = testable.ClassUnderTest.Flush();
+
+                Assert.Equal("url", result[0].Url);
             }
 
             [Fact]
@@ -488,6 +502,8 @@ namespace Spriting.Facts
                 Assert.Equal(testable.ClassUnderTest.Errors[0], exception);
                 Assert.Equal(testable.ClassUnderTest.Errors[0].Message, "Appropriately friendly error message");
             }
+
+
 
         }
 

@@ -65,11 +65,11 @@ namespace Spritastic
 
         public Func<byte[], string> UrlGenerator { get; set; }
 
-        private string DefaultUrlGenerator(byte[] bytes)
+        internal string DefaultUrlGenerator(byte[] bytes)
         {
             if (md5 == null)
                 md5 = new MD5CryptoServiceProvider();
-            return new Guid(md5.ComputeHash(bytes)).ToString();
+            return string.Format("{0}-Spritastic.png", new Guid(md5.ComputeHash(bytes)));
         }
 
         public Predicate<BackgroundImageClass> ImageExclusionFilter { get; set; }
