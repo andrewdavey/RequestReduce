@@ -23,7 +23,7 @@ namespace Spritastic.Generator
             this.config = config;
             this.generateSpriteUrl = generateSpriteUrl;
             SpriteContainer = new SpriteContainer(imageLoader, config);
-            Errors = new List<Exception>();
+            Errors = new List<SpriteException>();
         }
 
         // For testing access
@@ -40,7 +40,7 @@ namespace Spritastic.Generator
 
         public Predicate<BackgroundImageClass> ImageExclusionFilter { get; set; }
 
-        public IList<Exception> Errors { get; internal set; }
+        public IList<SpriteException> Errors { get; internal set; }
 
         public virtual void Add(BackgroundImageClass image)
         {
@@ -72,7 +72,7 @@ namespace Spritastic.Generator
                 var message = string.Format("There were errors reducing {0}", image.ImageUrl);
                 Tracer.Trace(message);
                 Tracer.Trace(ex.ToString());
-                var wrappedException = new ApplicationException(message, ex);
+                var wrappedException = new SpriteException(image.OriginalClassString, message, ex);
                 Errors.Add(wrappedException);
                 return;
             }
@@ -104,8 +104,9 @@ namespace Spritastic.Generator
                     catch (OptimizationException optEx)
                     {
                         optBytes = bytes;
-                        Tracer.Trace(string.Format("Errors optimizing. Received Error: {0}", optEx.Message));
-                        Errors.Add(optEx);
+                        var message = string.Format("Errors optimizing. Received Error: {0}", optEx.Message);
+                        Tracer.Trace(message);
+                        Errors.Add(new SpriteException(message, optEx));
                     }
                     var url = generateSpriteUrl(optBytes);
                     foreach (var image in SpriteContainer)

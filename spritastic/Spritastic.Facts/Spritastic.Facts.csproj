@@ -64,14 +64,14 @@
     <Compile Include="Parser\BackgroundImageClassFacts.cs" />
     <Compile Include="SpriteGeneratorFacts.cs" />
     <Compile Include="Utilities\BitmapPixelComparer.cs" />
-    <Compile Include="Generator%27\CssImageTransformerFacts.cs" />
+    <Compile Include="Generator\CssImageTransformerFacts.cs" />
     <Compile Include="Selector\CssSelectorAnalyzerFacts.cs" />
     <Compile Include="Utilities\BitmapTestExtentions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Selector\SelectorComparerFacts.cs" />
-    <Compile Include="Generator%27\SpriteContainerFacts.cs" />
-    <Compile Include="Generator%27\SpriteManagerFacts.cs" />
-    <Compile Include="Generator%27\SpriteWriterFacts.cs" />
+    <Compile Include="Generator\SpriteContainerFacts.cs" />
+    <Compile Include="Generator\SpriteManagerFacts.cs" />
+    <Compile Include="Generator\SpriteWriterFacts.cs" />
     <Compile Include="Utilities\Testable.cs" />
   </ItemGroup>
   <ItemGroup>

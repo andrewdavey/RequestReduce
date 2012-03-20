@@ -11,5 +11,6 @@ namespace Spritastic.Generator
         IList<Sprite> Flush();
         IImageLoader ImageLoader { get; set; }
         Predicate<BackgroundImageClass> ImageExclusionFilter { get; set; }
+        IList<SpriteException> Errors { get; }
     }
 }

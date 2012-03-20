@@ -199,15 +199,18 @@ namespace Spriting.Facts
             }
 
             [Fact]
-            public void WillSwallowInvalidOperationException()
+            public void WillSwallowInvalidOperationExceptionAndAddToErrorsProperty()
             {
                 var testable = new TestableSpriteManager();
-                var image = new BackgroundImageClass("", 0) { ImageUrl = "" };
-                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.AddImage(image)).Throws(new InvalidOperationException());
+                var image = new BackgroundImageClass(".myclass {color:ugly}", 0) { ImageUrl = "" };
+                var error = new InvalidOperationException();
+                testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.AddImage(image)).Throws(error);
 
                 var ex = Record.Exception(() => testable.ClassUnderTest.Add(image));
                 
                 Assert.Null(ex);
+                Assert.Equal(error, testable.ClassUnderTest.Errors[0].InnerException);
+                Assert.Equal(image.OriginalClassString, (testable.ClassUnderTest.Errors[0] as SpriteException).CssRule);
             }
 
         }
@@ -499,12 +502,9 @@ namespace Spriting.Facts
 
                 testable.ClassUnderTest.Flush();
 
-                Assert.Equal(testable.ClassUnderTest.Errors[0], exception);
-                Assert.Equal(testable.ClassUnderTest.Errors[0].Message, "Appropriately friendly error message");
+                Assert.Equal(testable.ClassUnderTest.Errors[0].InnerException, exception);
+                Assert.Equal(testable.ClassUnderTest.Errors[0].InnerException.Message, "Appropriately friendly error message");
             }
-
-
-
         }
 
         public class Enumerator

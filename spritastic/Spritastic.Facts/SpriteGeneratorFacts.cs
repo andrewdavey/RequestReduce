@@ -9,6 +9,7 @@ using Spritastic.Generator;
 using Spritastic.ImageLoad;
 using Spritastic.Parser;
 using Xunit;
+using Xunit.Sdk;
 
 namespace Spritastic.Facts
 {
@@ -88,6 +89,19 @@ namespace Spritastic.Facts
                 Assert.Equal(sprite1, result.Sprites[0]);
                 Assert.Equal(sprite2, result.Sprites[1]);
             }
+
+            [Fact]
+            public void WillPassSpriteErrorsIntoResult()
+            {
+                var testable = new TestableSpriteGenerator();
+                testable.Mock<ISpriteManager>().Setup(x => x.GetEnumerator()).Returns(new List<SpritedImage>().GetEnumerator());
+                testable.Mock<ISpriteManager>().SetupGet(x => x.Errors).Returns(new List<SpriteException> { new SpriteException("my error", new EmptyException()) });
+
+                var result = testable.ClassUnderTest.GenerateFromCss("css");
+
+                Assert.Equal("my error", result.Exceptions[0].Message);
+            }
+
         }
 
         public class DefaultUrlGenerator

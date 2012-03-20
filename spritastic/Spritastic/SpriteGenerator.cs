@@ -57,7 +57,7 @@ namespace Spritastic
                                                      (current, spritedImage) =>
                                                      cssImageTransformer.InjectSprite(current,
                                                                                       spritedImage));
-                return new SpritePackage(newCss, sprites);
+                return new SpritePackage(newCss, sprites, spriteManager.Errors);
             }
         }
 
