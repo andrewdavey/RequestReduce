@@ -1,25 +1,27 @@
+using System.IO;
+
 namespace Spritastic.Utilities
 {
     public class FileWrapper : IFileWrapper
     {
         public void Save(string content, string fileName)
         {
-            throw new System.NotImplementedException();
+            File.WriteAllText(fileName, content);
         }
 
         public void Save(byte[] content, string fileName)
         {
-            throw new System.NotImplementedException();
+            File.WriteAllBytes(fileName, content);
         }
 
         public bool FileExists(string path)
         {
-            throw new System.NotImplementedException();
+            return File.Exists(path);
         }
 
         public byte[] GetFileBytes(string path)
         {
-            throw new System.NotImplementedException();
+            return File.ReadAllBytes(path);
         }
     }
 }
