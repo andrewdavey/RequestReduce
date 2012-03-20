@@ -20,16 +20,15 @@ namespace Spriting.Facts
         class TestableSpriteContainer
         {
             public SpriteContainer ClassUnderTest { get; set; }
-            public SpritingSettings Settings { get; set; }
+            public ISpritingSettings Settings { get; set; }
             public Dictionary<string, byte[]> Images { get; private set; }
             public int DownloadCount { get; set; }
 
             public TestableSpriteContainer()
             {
-                Settings = new SpritingSettings
-                {
-                    IsFullTrust = true
-                };
+                var mockSettings = new Mock<ISpritingSettings>();
+                mockSettings.SetupGet(x => x.IsFullTrust).Returns(true);
+                Settings = mockSettings.Object;
                 Images = new Dictionary<string, byte[]>();
                 var mockLoader = new Mock<IImageLoader>();
                 mockLoader.Setup(x => x.GetImageBytes(It.IsAny<string>())).Callback(() => DownloadCount++).Returns
@@ -465,7 +464,7 @@ namespace Spriting.Facts
                 var testable = new TestableSpriteContainer();
                 var fiveColorImage = new BackgroundImageClass("image1", 0) { ImageUrl = "url" };
                 testable.Images["url"] = TestableSpriteContainer.GetFiveColorImage();
-                testable.Settings.IsFullTrust = false;
+                testable.Settings = new Mock<ISpritingSettings>().Object;
 
                 testable.ClassUnderTest.AddImage(fiveColorImage);
 
@@ -495,7 +494,7 @@ namespace Spriting.Facts
                 testable.Images["url"] = TestableSpriteContainer.GetFiveColorImage();
                 var fourColorImage = new BackgroundImageClass("image2", 0) { ImageUrl = "url2" };
                 testable.Images["url2"] = TestableSpriteContainer.GetFourColorImage();
-                testable.Settings.IsFullTrust = false;
+                testable.Settings = new Mock<ISpritingSettings>().Object;
 
                 testable.ClassUnderTest.AddImage(fiveColorImage);
                 testable.ClassUnderTest.AddImage(fourColorImage);
@@ -523,7 +522,7 @@ namespace Spriting.Facts
                 var testable = new TestableSpriteContainer();
                 var halfvioletHalfGreyImage = new BackgroundImageClass("image1", 0) { ImageUrl = "url" };
                 testable.Images["url"] = TestableSpriteContainer.GetHalfvioletHalfGreyImageImage(Color.DarkViolet);
-                testable.Settings.IsFullTrust = false;
+                testable.Settings = new Mock<ISpritingSettings>().Object;
 
                 var result = testable.ClassUnderTest.AddImage(halfvioletHalfGreyImage);
 

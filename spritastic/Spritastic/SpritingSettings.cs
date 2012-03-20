@@ -1,3 +1,6 @@
+using System.Web;
+using Spritastic.Utilities;
+
 namespace Spritastic
 {
     public interface ISpritingSettings
@@ -7,7 +10,7 @@ namespace Spritastic
         bool ImageQuantizationDisabled { get; set; }
         bool ImageOptimizationDisabled { get; set; }
         int ImageOptimizationCompressionLevel { get; set; }
-        bool IsFullTrust { get; set; }
+        bool IsFullTrust { get; }
     }
 
     public class SpritingSettings : ISpritingSettings
@@ -17,6 +20,9 @@ namespace Spritastic
         public bool ImageQuantizationDisabled { get; set; }
         public bool ImageOptimizationDisabled { get; set; }
         public int ImageOptimizationCompressionLevel { get; set; }
-        public bool IsFullTrust { get; set; }
+        public bool IsFullTrust
+        {
+            get { return TrustLevelChecker.GetCurrentTrustLevel() == AspNetHostingPermissionLevel.Unrestricted; }
+        }
     }
 }

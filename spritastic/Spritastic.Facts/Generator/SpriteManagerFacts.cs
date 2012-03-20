@@ -10,7 +10,6 @@ using Spritastic.Facts.Utilities;
 using Spritastic.Generator;
 using Spritastic.ImageLoad;
 using Spritastic.Parser;
-using Spritastic.SpriteStore;
 using Spritastic.Utilities;
 using Xunit;
 using Xunit.Extensions;
@@ -49,18 +48,11 @@ namespace Spriting.Facts
 
         class TestableSpriteManager : Testable<SpriteManagerToTest>
         {
-            public readonly ISpritingSettings Settings = new SpritingSettings
-                                                    {
-                                                        SpriteSizeLimit = 1000,
-                                                        SpriteColorLimit = 1000,
-                                                        IsFullTrust = true
-                                                    };
-
             public TestableSpriteManager()
             {
-                Inject(Settings);
-                Mock<ISpriteStore>().Setup(x => x.SaveSpriteAndReturnUrl(It.IsAny<byte[]>())).Returns("url");
-
+                Mock<ISpritingSettings>().Setup(x => x.SpriteSizeLimit).Returns(1000);
+                Mock<ISpritingSettings>().Setup(x => x.SpriteColorLimit).Returns(1000);
+                Mock<ISpritingSettings>().Setup(x => x.IsFullTrust).Returns(true);
             }
         }
 
@@ -98,7 +90,7 @@ namespace Spriting.Facts
             public void WillFlushWhenSizePassesThreshold()
             {
                 var testable = new TestableSpriteManager();
-                testable.Settings.SpriteSizeLimit = 1;
+                testable.Mock<ISpritingSettings>().Setup(x => x.SpriteSizeLimit).Returns(1);
                 testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Size).Returns(1);
 
                 testable.ClassUnderTest.Add(new BackgroundImageClass("", 0) { ImageUrl = "imageUrl" });
@@ -110,7 +102,7 @@ namespace Spriting.Facts
             public void WillFlushWhenColorCountPassesThreshold()
             {
                 var testable = new TestableSpriteManager();
-                testable.Settings.SpriteColorLimit = 1;
+                testable.Mock<ISpritingSettings>().Setup(x => x.SpriteColorLimit).Returns(1);
                 testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Colors).Returns(1);
 
                 testable.ClassUnderTest.Add(new BackgroundImageClass("", 0) { ImageUrl = "imageUrl" });
@@ -122,8 +114,8 @@ namespace Spriting.Facts
             public void WillNotFlushWhenColorCountPassesThresholdAndImageOptimizationIsDisabed()
             {
                 var testable = new TestableSpriteManager();
-                testable.Settings.SpriteSizeLimit = 1;
-                testable.Settings.ImageOptimizationDisabled = true;
+                testable.Mock<ISpritingSettings>().Setup(x => x.SpriteSizeLimit).Returns(1);
+                testable.Mock<ISpritingSettings>().Setup(x => x.ImageOptimizationDisabled).Returns(true);
                 testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Colors).Returns(1);
 
                 testable.ClassUnderTest.Add(new BackgroundImageClass("", 0) { ImageUrl = "imageUrl" });
@@ -135,8 +127,8 @@ namespace Spriting.Facts
             public void WillNotFlushWhenColorCountPassesThresholdAndImageQuantizationIsDisabed()
             {
                 var testable = new TestableSpriteManager();
-                testable.Settings.SpriteSizeLimit = 1;
-                testable.Settings.ImageQuantizationDisabled = true;
+                testable.Mock<ISpritingSettings>().Setup(x => x.SpriteSizeLimit).Returns(1);
+                testable.Mock<ISpritingSettings>().Setup(x => x.ImageQuantizationDisabled).Returns(true);
                 testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Colors).Returns(1);
 
                 testable.ClassUnderTest.Add(new BackgroundImageClass("", 0) { ImageUrl = "imageUrl" });
@@ -384,8 +376,8 @@ namespace Spriting.Facts
             public void WillOptimizeImageIfOptimizationIsEnabled()
             {
                 var testable = new TestableSpriteManager();
-                testable.Settings.ImageOptimizationDisabled = false;
-                testable.Settings.ImageOptimizationCompressionLevel = 2;
+                testable.Mock<ISpritingSettings>().Setup(x => x.ImageOptimizationDisabled).Returns(false);
+                testable.Mock<ISpritingSettings>().Setup(x => x.ImageOptimizationCompressionLevel).Returns(2);
                 testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Size).Returns(1);
                 var optimizedBytes = new byte[] {5, 5, 5, 5, 5};
                 testable.Mock<IPngOptimizer>().Setup(x => x.OptimizePng(It.IsAny<byte[]>(), 2, false)).Returns(optimizedBytes).Verifiable();
@@ -399,7 +391,7 @@ namespace Spriting.Facts
             public void WillNotOptimizeImageIfOptimizationIsDisabled()
             {
                 var testable = new TestableSpriteManager();
-                testable.Settings.ImageOptimizationDisabled = true;
+                testable.Mock<ISpritingSettings>().Setup(x => x.ImageOptimizationDisabled).Returns(true);
                 testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Size).Returns(1);
                 var optimizedBytes = new byte[0];
                 testable.Mock<IPngOptimizer>().Setup(x => x.OptimizePng(It.IsAny<byte[]>(), It.IsAny<int>(), false)).
@@ -414,7 +406,7 @@ namespace Spriting.Facts
             public void WillNotOptimizeImageIfNotInFullTrust()
             {
                 var testable = new TestableSpriteManager();
-                testable.Settings.IsFullTrust = false;
+                testable.Mock<ISpritingSettings>().Setup(x => x.IsFullTrust).Returns(false);
                 testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Size).Returns(1);
                 var optimizedBytes = new byte[0];
                 testable.Mock<IPngOptimizer>().Setup(x => x.OptimizePng(It.IsAny<byte[]>(), It.IsAny<int>(), false)).
@@ -433,8 +425,8 @@ namespace Spriting.Facts
                 var testable = new TestableSpriteManager();
                 int compression = 0;
                 byte[] bytes = null;
-                testable.Settings.ImageOptimizationDisabled = false;
-                testable.Settings.ImageOptimizationCompressionLevel = expectedCompression;
+                testable.Mock<ISpritingSettings>().Setup(x => x.ImageOptimizationDisabled).Returns(false);
+                testable.Mock<ISpritingSettings>().Setup(x => x.ImageOptimizationCompressionLevel).Returns(expectedCompression);
                 testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Size).Returns(1);
                 testable.Mock<IPngOptimizer>().Setup(x => x.OptimizePng(It.IsAny<byte[]>(), It.IsAny<int>(), false)).
                     Callback<byte[], int, bool>((a, b, c) => { compression = b;
@@ -454,8 +446,8 @@ namespace Spriting.Facts
                 var testable = new TestableSpriteManager();
                 bool isQuantizationDisabled = false;
                 byte[] bytes = null;
-                testable.Settings.ImageOptimizationDisabled = false;
-                testable.Settings.ImageQuantizationDisabled = expectedToBeDisabled;
+                testable.Mock<ISpritingSettings>().Setup(x => x.ImageOptimizationDisabled).Returns(false);
+                testable.Mock<ISpritingSettings>().Setup(x => x.ImageQuantizationDisabled).Returns(expectedToBeDisabled);
                 testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Size).Returns(1);
                 testable.Mock<IPngOptimizer>().Setup(
                     x => x.OptimizePng(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<bool>())).Callback
@@ -477,8 +469,8 @@ namespace Spriting.Facts
                 byte[] originalBytes = null;
                 var images = new List<SpritedImage> { new SpritedImage(1, null, TestImages.Image15X17), new SpritedImage(1, null, TestImages.Image18X18) };
                 testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.GetEnumerator()).Returns(() => images.GetEnumerator());
-                testable.Settings.ImageOptimizationDisabled = false;
-                testable.Settings.ImageOptimizationCompressionLevel = 2;
+                testable.Mock<ISpritingSettings>().Setup(x => x.ImageOptimizationDisabled).Returns(false);
+                testable.Mock<ISpritingSettings>().Setup(x => x.ImageOptimizationCompressionLevel).Returns(2);
                 testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Size).Returns(1);
                 testable.Mock<IPngOptimizer>()
                     .Setup(x => x.OptimizePng(It.IsAny<byte[]>(), 2, false))
@@ -495,8 +487,8 @@ namespace Spriting.Facts
             {
                 var testable = new TestableSpriteManager();
                 var exception = new OptimizationException("Appropriately friendly error message");
-                testable.Settings.ImageOptimizationDisabled = false;
-                testable.Settings.ImageOptimizationCompressionLevel = 2;
+                testable.Mock<ISpritingSettings>().Setup(x => x.ImageOptimizationDisabled).Returns(false);
+                testable.Mock<ISpritingSettings>().Setup(x => x.ImageOptimizationCompressionLevel).Returns(2);
                 testable.ClassUnderTest.MockSpriteContainer.Setup(x => x.Size).Returns(1);
                 testable.Mock<IPngOptimizer>().Setup(x => x.OptimizePng(It.IsAny<byte[]>(), 2, false)).Throws(exception);
 

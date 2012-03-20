@@ -79,6 +79,7 @@
     <Compile Include="Generator\SpritedImage.cs" />
     <Compile Include="Generator\SpriteManager.cs" />
     <Compile Include="Generator\SpriteWriter.cs" />
+    <Compile Include="Utilities\TrustLevelChecker.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
