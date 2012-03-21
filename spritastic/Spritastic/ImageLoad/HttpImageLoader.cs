@@ -1,3 +1,4 @@
+using System;
 using Spritastic.Utilities;
 
 namespace Spritastic.ImageLoad
@@ -15,7 +16,7 @@ namespace Spritastic.ImageLoad
 
         public byte[] GetImageBytes(string url)
         {
-            return new byte[0];
+            return WebClientWrapper.DownloadBytes(new Uri(new Uri(BasePath), url).AbsoluteUri);
         }
     }
 }
