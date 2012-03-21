@@ -17,8 +17,6 @@ namespace Spritastic
         private static readonly ICssImageTransformer DefaultCssImageTransformer =
             new CssImageTransformer(new CssSelectorAnalyzer());
 
-        private static readonly IImageLoader DefaultImageLoader;
-
         private readonly ICssImageTransformer cssImageTransformer;
         private readonly Func<IImageLoader, Func<byte[], string>, ISpriteManager> createSpriteManager;
 
@@ -39,11 +37,11 @@ namespace Spritastic
             this.createSpriteManager = createSpriteManager;
         }
 
-        public SpritePackage GenerateFromCss(string cssContent)
+        public SpritePackage GenerateFromCss(string cssContent, string cssPath)
         {
             var newImages = cssImageTransformer.ExtractImageUrls(cssContent);
             using (
-                var spriteManager = createSpriteManager(ImageLoader ?? DefaultImageLoader,
+                var spriteManager = createSpriteManager(ImageLoader ?? CreateImageLoader(cssPath),
                                                         UrlGenerator ?? DefaultUrlGenerator))
             {
                 foreach (var imageUrl in newImages)
@@ -59,6 +57,11 @@ namespace Spritastic
                                                                                       spritedImage));
                 return new SpritePackage(newCss, sprites, spriteManager.Errors);
             }
+        }
+
+        private static IImageLoader CreateImageLoader(string cssPath)
+        {
+            return new HttpImageLoader(new WebClientWrapper()) {BasePath = cssPath};
         }
 
         public IImageLoader ImageLoader { get; set; }

@@ -54,7 +54,7 @@ namespace Spritastic.Facts
                                  };
                 testable.Mock<ICssImageTransformer>().Setup(x => x.ExtractImageUrls(css)).Returns(images);
 
-                testable.ClassUnderTest.GenerateFromCss(css);
+                testable.ClassUnderTest.GenerateFromCss(css, null);
 
                 testable.Mock<ISpriteManager>().Verify(x => x.Add(images[0]), Times.Exactly(1));
                 testable.Mock<ISpriteManager>().Verify(x => x.Add(images[1]), Times.Exactly(1));
@@ -70,7 +70,7 @@ namespace Spritastic.Facts
                 testable.Mock<ISpriteManager>().Setup(x => x.GetEnumerator()).Returns(sprites.GetEnumerator());
                 testable.Mock<ICssImageTransformer>().Setup(x => x.InjectSprite(It.IsAny<string>(), It.IsAny<SpritedImage>())).Returns<string, SpritedImage>((s, i) => s + "|sprited");
 
-                var result = testable.ClassUnderTest.GenerateFromCss("css");
+                var result = testable.ClassUnderTest.GenerateFromCss("css", null);
 
                 Assert.Equal("css|sprited|sprited", result.GeneratedCss);
             }
@@ -84,7 +84,7 @@ namespace Spritastic.Facts
                 var sprite2 = new Sprite("url2", new byte[] { 2 });
                 testable.Mock<ISpriteManager>().Setup(x => x.Flush()).Returns(new List<Sprite> { sprite1, sprite2 });
 
-                var result = testable.ClassUnderTest.GenerateFromCss("css");
+                var result = testable.ClassUnderTest.GenerateFromCss("css", null);
 
                 Assert.Equal(sprite1, result.Sprites[0]);
                 Assert.Equal(sprite2, result.Sprites[1]);
@@ -97,7 +97,7 @@ namespace Spritastic.Facts
                 testable.Mock<ISpriteManager>().Setup(x => x.GetEnumerator()).Returns(new List<SpritedImage>().GetEnumerator());
                 testable.Mock<ISpriteManager>().SetupGet(x => x.Errors).Returns(new List<SpriteException> { new SpriteException("my error", new EmptyException()) });
 
-                var result = testable.ClassUnderTest.GenerateFromCss("css");
+                var result = testable.ClassUnderTest.GenerateFromCss("css", null);
 
                 Assert.Equal("my error", result.Exceptions[0].Message);
             }
