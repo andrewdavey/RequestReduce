@@ -61,6 +61,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ImageLoad\HttpImageLoaderFacts.cs" />
     <Compile Include="Parser\BackgroundImageClassFacts.cs" />
     <Compile Include="SpriteGeneratorFacts.cs" />
     <Compile Include="Utilities\BitmapPixelComparer.cs" />

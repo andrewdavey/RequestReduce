@@ -32,5 +32,10 @@ namespace Spritastic.Utilities
 
             return AspNetHostingPermissionLevel.None;
         }
+
+        public static bool IsFullTrust()
+        {
+            return GetCurrentTrustLevel() == AspNetHostingPermissionLevel.Unrestricted;
+        }
     }
 }

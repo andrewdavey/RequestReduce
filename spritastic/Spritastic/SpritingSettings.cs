@@ -1,4 +1,3 @@
-using System.Web;
 using Spritastic.Utilities;
 
 namespace Spritastic
@@ -22,7 +21,7 @@ namespace Spritastic
         public int ImageOptimizationCompressionLevel { get; set; }
         public bool IsFullTrust
         {
-            get { return TrustLevelChecker.GetCurrentTrustLevel() == AspNetHostingPermissionLevel.Unrestricted; }
+            get { return TrustLevelChecker.IsFullTrust(); }
         }
     }
 }

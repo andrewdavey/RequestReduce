@@ -48,6 +48,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Generator\CssImageTransformer.cs" />
+    <Compile Include="ImageLoad\HttpImageLoader.cs" />
     <Compile Include="ImageLoad\IImageLoader.cs" />
     <Compile Include="Selector\CssSelectorAnalyzer.cs" />
     <Compile Include="Parser\BackgroundImageClass.cs" />
@@ -80,6 +81,7 @@
     <Compile Include="Generator\SpriteManager.cs" />
     <Compile Include="Generator\SpriteWriter.cs" />
     <Compile Include="Utilities\TrustLevelChecker.cs" />
+    <Compile Include="Utilities\WebClientWrapper.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
