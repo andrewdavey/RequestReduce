@@ -51,7 +51,7 @@ namespace Spritastic.Facts
 }"
                                          , 2)
                                  };
-                testable.Mock<ICssImageTransformer>().Setup(x => x.ExtractImageUrls(css)).Returns(images);
+                testable.Mock<ICssImageExtractor>().Setup(x => x.ExtractImageUrls(css)).Returns(images);
 
                 testable.ClassUnderTest.GenerateFromCss(css);
 
@@ -63,11 +63,13 @@ namespace Spritastic.Facts
             public void WillReturnInjectedCss()
             {
                 var testable = new TestableSpriteGenerator();
-                var sprite1 = new SpritedImage(1, null, new Bitmap(1, 1, PixelFormat.Format8bppIndexed)) { Position = -100 };
-                var sprite2 = new SpritedImage(2, null, new Bitmap(1, 1, PixelFormat.Format8bppIndexed)) { Position = -100 };
-                var sprites = new List<SpritedImage> { sprite1, sprite2 };
+                var sprite1 = new Mock<SpritedImage>(1, null, new Bitmap(1, 1, PixelFormat.Format8bppIndexed));
+                sprite1.Setup(s => s.InjectIntoCss(It.IsAny<string>())).Returns<string>(css => css + "|sprited");
+                var sprite2 = new Mock<SpritedImage>(2, null, new Bitmap(1, 1, PixelFormat.Format8bppIndexed));
+                sprite2.Setup(s => s.InjectIntoCss(It.IsAny<string>())).Returns<string>(css => css + "|sprited");
+                
+                var sprites = new List<SpritedImage> { sprite1.Object, sprite2.Object };
                 testable.Mock<ISpriteManager>().Setup(x => x.GetEnumerator()).Returns(sprites.GetEnumerator());
-                testable.Mock<ICssImageTransformer>().Setup(x => x.InjectSprite(It.IsAny<string>(), It.IsAny<SpritedImage>())).Returns<string, SpritedImage>((s, i) => s + "|sprited");
 
                 var result = testable.ClassUnderTest.GenerateFromCss("css");
 

@@ -3,9 +3,8 @@ using Spritastic.Parser;
 
 namespace Spritastic.Generator
 {
-    public interface ICssImageTransformer
+    public interface ICssImageExtractor
     {
         IEnumerable<BackgroundImageClass> ExtractImageUrls(string cssContent);
-        string InjectSprite(string originalCss, SpritedImage image);
     }
 }

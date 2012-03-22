@@ -61,6 +61,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Generator\SpritedImageFacts.cs" />
     <Compile Include="ImageLoad\HttpImageLoaderFacts.cs" />
     <Compile Include="Parser\BackgroundImageClassFacts.cs" />
     <Compile Include="SpriteGeneratorFacts.cs" />

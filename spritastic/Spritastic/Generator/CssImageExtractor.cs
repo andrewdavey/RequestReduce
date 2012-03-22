@@ -6,13 +6,13 @@ using Spritastic.Selector;
 
 namespace Spritastic.Generator
 {
-    public class CssImageTransformer : ICssImageTransformer
+    public class CssImageExtractor : ICssImageExtractor
     {
         private readonly ICssSelectorAnalyzer cssSelectorAnalyzer;
         private readonly IComparer<BackgroundImageClass> selectorComparer = new SelectorComparer();
         private readonly Regex classPattern = new Regex(@"(?<=\}|)[^\}]+\}", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
-        public CssImageTransformer(ICssSelectorAnalyzer cssSelectorAnalyzer)
+        public CssImageExtractor(ICssSelectorAnalyzer cssSelectorAnalyzer)
         {
             this.cssSelectorAnalyzer = cssSelectorAnalyzer;
         }
@@ -93,11 +93,6 @@ namespace Spritastic.Generator
 
             if (DerivableHasMissingProperty(derrivableClass, imageClass, PropertyCompletion.HasHeight))
                 imageClass.ExplicitHeight = derrivableClass.ExplicitHeight;
-        }
-
-        public string InjectSprite(string originalCss, SpritedImage image)
-        {
-            return originalCss.Replace(image.CssClass.OriginalClassString, image.Render());
         }
 
         private bool CanSprite(BackgroundImageClass imageClass)

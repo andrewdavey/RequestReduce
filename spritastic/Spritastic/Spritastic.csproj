@@ -47,7 +47,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Generator\CssImageTransformer.cs" />
+    <Compile Include="Generator\CssImageExtractor.cs" />
     <Compile Include="ImageLoad\HttpImageLoader.cs" />
     <Compile Include="ImageLoad\IImageLoader.cs" />
     <Compile Include="Selector\CssSelectorAnalyzer.cs" />
@@ -62,7 +62,7 @@
     <Compile Include="SpriteGenerator.cs" />
     <Compile Include="SpritePackage.cs" />
     <Compile Include="SpriteStore\ISpriteStore.cs" />
-    <Compile Include="Generator\ICssImageTransformer.cs" />
+    <Compile Include="Generator\ICssImageExtractor.cs" />
     <Compile Include="Selector\ICssSelectorAnalyzer.cs" />
     <Compile Include="Utilities\FileWrapper.cs" />
     <Compile Include="Utilities\IFileWrapper.cs" />

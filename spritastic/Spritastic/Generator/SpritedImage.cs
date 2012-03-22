@@ -36,5 +36,10 @@ namespace Spritastic.Generator
                                         string.Format(";background-position: -{0}px {1}{2};}}",
                                         Position, yOffset, CssClass.Important ? " !important" : string.Empty));
         }
+
+        public virtual string InjectIntoCss(string originalCss)
+        {
+            return originalCss.Replace(CssClass.OriginalClassString, Render());
+        }
     }
 }
