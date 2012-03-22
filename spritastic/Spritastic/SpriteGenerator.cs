@@ -1,48 +1,25 @@
 ﻿using System;
 using System.Linq;
-using System.Security.Cryptography;
 using Spritastic.Generator;
-using Spritastic.ImageLoad;
-using Spritastic.Parser;
-using Spritastic.Selector;
 using Spritastic.Utilities;
-using nQuant;
 
 namespace Spritastic
 {
     public class SpriteGenerator
     {
-        [ThreadStatic] private static MD5CryptoServiceProvider md5;
-
-        private static readonly ICssImageTransformer DefaultCssImageTransformer =
-            new CssImageTransformer(new CssSelectorAnalyzer());
-
         private readonly ICssImageTransformer cssImageTransformer;
-        private readonly Func<IImageLoader, Func<byte[], string>, ISpriteManager> createSpriteManager;
+        private readonly Func<ISpriteManager> createSpriteManager;
 
-        public SpriteGenerator(ISpritingSettings settings)
-            : this(
-                DefaultCssImageTransformer,
-                (imageLoader, urlGenerator) =>
-                new SpriteManager(settings, imageLoader, urlGenerator,
-                                  new PngOptimizer(new FileWrapper(), new WuQuantizer())))
-        {
-
-        }
-
-        internal SpriteGenerator(ICssImageTransformer cssImageTransformer,
-                                 Func<IImageLoader, Func<byte[], string>, ISpriteManager> createSpriteManager)
+        public SpriteGenerator(ICssImageTransformer cssImageTransformer, Func<ISpriteManager> createSpriteManager)
         {
             this.cssImageTransformer = cssImageTransformer;
             this.createSpriteManager = createSpriteManager;
         }
 
-        public SpritePackage GenerateFromCss(string cssContent, string cssPath)
+        public SpritePackage GenerateFromCss(string cssContent)
         {
             var newImages = cssImageTransformer.ExtractImageUrls(cssContent);
-            using (
-                var spriteManager = createSpriteManager(ImageLoader ?? CreateImageLoader(cssPath),
-                                                        UrlGenerator ?? DefaultUrlGenerator))
+            using (var spriteManager = createSpriteManager())
             {
                 foreach (var imageUrl in newImages)
                 {
@@ -58,23 +35,5 @@ namespace Spritastic
                 return new SpritePackage(newCss, sprites, spriteManager.Errors);
             }
         }
-
-        private static IImageLoader CreateImageLoader(string cssPath)
-        {
-            return new HttpImageLoader(new WebClientWrapper()) {BasePath = cssPath};
-        }
-
-        public IImageLoader ImageLoader { get; set; }
-
-        public Func<byte[], string> UrlGenerator { get; set; }
-
-        internal string DefaultUrlGenerator(byte[] bytes)
-        {
-            if (md5 == null)
-                md5 = new MD5CryptoServiceProvider();
-            return string.Format("{0}-Spritastic.png", new Guid(md5.ComputeHash(bytes)));
-        }
-
-        public Predicate<BackgroundImageClass> ImageExclusionFilter { get; set; }
     }
 }
