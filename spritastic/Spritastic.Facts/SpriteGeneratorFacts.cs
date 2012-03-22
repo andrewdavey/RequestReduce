@@ -5,7 +5,6 @@ using System.Drawing.Imaging;
 using Moq;
 using Spritastic.Facts.Utilities;
 using Spritastic.Generator;
-using Spritastic.ImageLoad;
 using Spritastic.Parser;
 using Xunit;
 using Xunit.Sdk;
@@ -19,10 +18,8 @@ namespace Spritastic.Facts
             public TestableSpriteGenerator()
             {
                 AutoMockContainer.Configure(x => { x.SelectConstructor(() => new SpriteGenerator(null, null));
-                                                     x.For<Func<IImageLoader, Func<byte[], string>, ISpriteManager>>().
-                                                         Use(
-                                                             (loader, urlGenerator) =>
-                                                             AutoMockContainer.GetInstance<ISpriteManager>());
+                                                     x.For<Func<string, ISpriteManager>>().
+                                                         Use(cssPath => AutoMockContainer.GetInstance<ISpriteManager>());
                 });
             }
         }
@@ -53,7 +50,7 @@ namespace Spritastic.Facts
                                  };
                 testable.Mock<ICssImageExtractor>().Setup(x => x.ExtractImageUrls(css)).Returns(images);
 
-                testable.ClassUnderTest.GenerateFromCss(css);
+                testable.ClassUnderTest.GenerateFromCss(css, "http://server/test.css");
 
                 testable.Mock<ISpriteManager>().Verify(x => x.Add(images[0]), Times.Exactly(1));
                 testable.Mock<ISpriteManager>().Verify(x => x.Add(images[1]), Times.Exactly(1));
@@ -71,7 +68,7 @@ namespace Spritastic.Facts
                 var sprites = new List<SpritedImage> { sprite1.Object, sprite2.Object };
                 testable.Mock<ISpriteManager>().Setup(x => x.GetEnumerator()).Returns(sprites.GetEnumerator());
 
-                var result = testable.ClassUnderTest.GenerateFromCss("css");
+                var result = testable.ClassUnderTest.GenerateFromCss("css", "http://server/test.css");
 
                 Assert.Equal("css|sprited|sprited", result.GeneratedCss);
             }
@@ -85,7 +82,7 @@ namespace Spritastic.Facts
                 var sprite2 = new Sprite("url2", new byte[] { 2 });
                 testable.Mock<ISpriteManager>().Setup(x => x.Flush()).Returns(new List<Sprite> { sprite1, sprite2 });
 
-                var result = testable.ClassUnderTest.GenerateFromCss("css");
+                var result = testable.ClassUnderTest.GenerateFromCss("css", "http://server/test.css");
 
                 Assert.Equal(sprite1, result.Sprites[0]);
                 Assert.Equal(sprite2, result.Sprites[1]);
@@ -98,7 +95,7 @@ namespace Spritastic.Facts
                 testable.Mock<ISpriteManager>().Setup(x => x.GetEnumerator()).Returns(new List<SpritedImage>().GetEnumerator());
                 testable.Mock<ISpriteManager>().SetupGet(x => x.Errors).Returns(new List<SpriteException> { new SpriteException("my error", new EmptyException()) });
 
-                var result = testable.ClassUnderTest.GenerateFromCss("css");
+                var result = testable.ClassUnderTest.GenerateFromCss("css", "http://server/test.css");
 
                 Assert.Equal("my error", result.Exceptions[0].Message);
             }
