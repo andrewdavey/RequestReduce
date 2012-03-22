@@ -1,4 +1,4 @@
-namespace Spritastic.Generator
+namespace Spritastic
 {
     public class Sprite
     {

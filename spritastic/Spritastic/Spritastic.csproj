@@ -57,7 +57,7 @@
     <Compile Include="Parser\PositionMode.cs" />
     <Compile Include="Parser\PropertyCompletion.cs" />
     <Compile Include="Parser\RepeatStyle.cs" />
-    <Compile Include="Generator\Sprite.cs" />
+    <Compile Include="Sprite.cs" />
     <Compile Include="SpriteException.cs" />
     <Compile Include="SpriteGenerator.cs" />
     <Compile Include="SpritePackage.cs" />
